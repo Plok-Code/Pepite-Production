@@ -1,0 +1,32 @@
+{
+  "name": "WildFlix Minimal Dark",
+  "background": "#0B0F17",
+  "foreground": "#EAF0FF",
+  "tableAccent": "#FFB020",
+  "dataColors": ["#FFB020", "#A7B3CC", "#25324A"],
+  "textClasses": {
+    "title": { "fontFace": "Inter", "fontSize": 14, "color": "#EAF0FF" },
+    "label": { "fontFace": "Inter", "fontSize": 12, "color": "#A7B3CC" },
+    "callout": { "fontFace": "Inter", "fontSize": 26, "color": "#EAF0FF" }
+  },
+  "visualStyles": {
+    "*": {
+      "*": {
+        "background": [
+          {
+            "color": { "solid": { "color": "#141C2B" } },
+            "transparency": 0
+          }
+        ],
+        "border": [
+          {
+            "show": true,
+            "color": { "solid": { "color": "#25324A" } },
+            "radius": 14
+          }
+        ]
+      }
+    }
+  }
+}
+

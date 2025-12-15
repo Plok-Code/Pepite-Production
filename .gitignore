@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+
+# Streamlit secrets should not be committed
+.streamlit/secrets.toml
+
+# Local user store (runtime data)
+data/*.json
+
