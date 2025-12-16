@@ -85,7 +85,7 @@ def inject_wildflix_styles():
         }
 
         /* Affiches cliquables (boutons Streamlit styles en poster). */
-        [class*="st-key-wf_poster_"] button {
+        [class*="st-key-wf_poster_btn_"] button {
           height: 340px;
           padding: 0;
           border-radius: 12px;
@@ -96,7 +96,7 @@ def inject_wildflix_styles():
           border: 1px solid var(--border);
           overflow: hidden;
         }
-        [class*="st-key-wf_poster_"] button > div {
+        [class*="st-key-wf_poster_btn_"] button > div {
           opacity: 0;
         }
 
@@ -222,7 +222,7 @@ def render_movie_row(
                             st.rerun()
 
                     poster_url = str(poster) if pd.notna(poster) and str(poster).strip() else None
-                    poster_key = f"wf_poster_{key}_{i}_{imdb_key or 'na'}"
+                    poster_key = f"wf_poster_btn_{key}_{i}_{imdb_key or 'na'}"
                     fav_button_key = f"wf_fav_overlay_{key}_{i}_{imdb_key or 'na'}"
                     with st.container(key=f"wf_poster_wrap_{key}_{i}_{imdb_key or 'na'}"):
                         if poster_url and imdb_key:

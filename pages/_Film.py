@@ -89,6 +89,7 @@ def main():
     st.markdown(
         """
         <style>
+        [class*="st-key-wf_bc_link_"]{ overflow:hidden; }
         [class*="st-key-wf_bc_link_"] button{
           background:transparent !important;
           border:0 !important;
@@ -96,6 +97,10 @@ def main():
           border-radius:0 !important;
           padding:0 !important;
           min-height:0 !important;
+          min-width:0 !important;
+          max-width:100% !important;
+          overflow:hidden !important;
+          text-overflow:ellipsis !important;
           white-space:nowrap !important;
           color:var(--muted) !important;
           font-weight:600 !important;
@@ -118,19 +123,19 @@ def main():
     left, right = st.columns([5, 1], vertical_alignment="center")
     with left:
         if source_page and source_page != "Home.py":
-            c1, c2, c3 = st.columns([0.35, 0.65, 12], gap="small", vertical_alignment="center")
+            c1, c2, c3 = st.columns([1.2, 2.0, 9.8], gap="small", vertical_alignment="center")
             with c1:
-                if st.button("Accueil ›", key=f"wf_bc_link_home_{imdb_key}"):
+                if st.button("Accueil >", key=f"wf_bc_link_home_{imdb_key}"):
                     st.switch_page("Home.py")
             with c2:
-                if st.button(f"{_source_label(source_page)} ›", key=f"wf_bc_link_src_{imdb_key}"):
+                if st.button(f"{_source_label(source_page)} >", key=f"wf_bc_link_src_{imdb_key}"):
                     st.switch_page(source_page)
             with c3:
                 st.caption(title)
         else:
-            c1, c2 = st.columns([0.35, 13], gap="small", vertical_alignment="center")
+            c1, c2 = st.columns([1.2, 11.8], gap="small", vertical_alignment="center")
             with c1:
-                if st.button("Accueil ›", key=f"wf_bc_link_home_{imdb_key}"):
+                if st.button("Accueil >", key=f"wf_bc_link_home_{imdb_key}"):
                     st.switch_page("Home.py")
             with c2:
                 st.caption(title)
