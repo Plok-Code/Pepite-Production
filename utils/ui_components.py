@@ -65,18 +65,18 @@ def inject_wildflix_styles():
         [data-testid="stSidebarNav"] { display: none; }
 
         /* Active le scroll horizontal pour les rangées de films (container key prefix wf-scroll-...). */
-        div[class*="st-key-wf-scroll-"] div[data-testid="stHorizontalBlock"] {
+        [class*="st-key-wf-scroll-"] div[data-testid="stHorizontalBlock"] {
           overflow-x: auto;
           flex-wrap: nowrap;
           gap: 14px;
           padding-bottom: 8px;
         }
-        div[class*="st-key-wf-scroll-"] div[data-testid="column"] {
+        [class*="st-key-wf-scroll-"] div[data-testid="column"] {
           min-width: 240px;
         }
 
         /* Cartes films */
-        div[class*="st-key-wf_card_"] {
+        [class*="st-key-wf_card_"] {
           background: var(--surface);
           border: 1px solid var(--border);
           border-radius: var(--radius);
@@ -85,7 +85,7 @@ def inject_wildflix_styles():
         }
 
         /* Affiches cliquables (boutons Streamlit styles en poster). */
-        div[class*="st-key-wf_poster_"] button {
+        [class*="st-key-wf_poster_"] button {
           height: 340px;
           padding: 0;
           border-radius: 12px;
@@ -96,13 +96,13 @@ def inject_wildflix_styles():
           border: 1px solid var(--border);
           overflow: hidden;
         }
-        div[class*="st-key-wf_poster_"] button > div {
+        [class*="st-key-wf_poster_"] button > div {
           opacity: 0;
         }
 
         /* Bouton coeur superpose sur les posters (cartes). */
-        div[class*="st-key-wf_poster_wrap_"]{ position: relative; }
-        div[class*="st-key-wf_poster_wrap_"] div[class*="st-key-wf_fav_overlay_"]{
+        [class*="st-key-wf_poster_wrap_"]{ position: relative; }
+        [class*="st-key-wf_poster_wrap_"] [class*="st-key-wf_fav_overlay_"]{
           position:absolute;
           top:10px;
           right:10px;
@@ -113,7 +113,7 @@ def inject_wildflix_styles():
           align-items:center;
           justify-content:center;
         }
-        div[class*="st-key-wf_poster_wrap_"] div[class*="st-key-wf_fav_overlay_"] button{
+        [class*="st-key-wf_poster_wrap_"] [class*="st-key-wf_fav_overlay_"] button{
           width:44px !important;
           height:44px !important;
           padding:0 !important;
@@ -129,8 +129,8 @@ def inject_wildflix_styles():
         }
 
         /* Poster + coeur (page film). */
-        div[class*="st-key-wf_film_poster_wrap_"]{ position: relative; }
-        div[class*="st-key-wf_film_poster_wrap_"] div[class*="st-key-wf_film_fav_"]{
+        [class*="st-key-wf_film_poster_wrap_"]{ position: relative; }
+        [class*="st-key-wf_film_poster_wrap_"] [class*="st-key-wf_film_fav_"]{
           position:absolute;
           top:12px;
           right:12px;
@@ -141,7 +141,7 @@ def inject_wildflix_styles():
           align-items:center;
           justify-content:center;
         }
-        div[class*="st-key-wf_film_poster_wrap_"] div[class*="st-key-wf_film_fav_"] button{
+        [class*="st-key-wf_film_poster_wrap_"] [class*="st-key-wf_film_fav_"] button{
           width:48px !important;
           height:48px !important;
           padding:0 !important;
@@ -155,13 +155,13 @@ def inject_wildflix_styles():
           line-height:1 !important;
           color:var(--text) !important;
         }
-        div[class*="st-key-wf_film_poster_wrap_"] div[data-testid="stImage"] img{
+        [class*="st-key-wf_film_poster_wrap_"] div[data-testid="stImage"] img{
           border-radius:12px;
           border:1px solid var(--border);
         }
 
         /* Titres des films plus lisibles dans les cartes. */
-        div[class*="st-key-wf-scroll-"] button[data-testid="baseButton-secondary"] {
+        [class*="st-key-wf-scroll-"] button[data-testid="baseButton-secondary"] {
           font-weight: 700;
           text-align: left;
           white-space: normal;
@@ -228,7 +228,7 @@ def render_movie_row(
                         if poster_url and imdb_key:
                             safe_url = poster_url.replace("'", "%27")
                             st.markdown(
-                                f"<style>div[class*=\"st-key-{poster_key}\"] button {{ background-image: url('{safe_url}'); }}</style>",
+                                f"<style>[class*=\"st-key-{poster_key}\"] button {{ background-image: url('{safe_url}'); }}</style>",
                                 unsafe_allow_html=True,
                             )
                             if st.button(
@@ -258,7 +258,7 @@ def render_movie_row(
                             st.rerun()
                         if liked:
                             st.markdown(
-                                f"<style>div[class*=\"st-key-{fav_button_key}\"] button{{color:var(--danger) !important;border-color:rgba(255,59,59,0.55) !important;}}</style>",
+                                f"<style>[class*=\"st-key-{fav_button_key}\"] button{{color:var(--danger) !important;border-color:rgba(255,59,59,0.55) !important;}}</style>",
                                 unsafe_allow_html=True,
                             )
 
