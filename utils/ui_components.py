@@ -109,6 +109,9 @@ def inject_wildflix_styles():
           z-index:20;
           width:44px;
           height:44px;
+          display:flex;
+          align-items:center;
+          justify-content:center;
         }
         div[class*="st-key-wf_poster_wrap_"] div[class*="st-key-wf_fav_overlay_"] button{
           width:44px !important;
@@ -117,6 +120,12 @@ def inject_wildflix_styles():
           border-radius:999px !important;
           background:rgba(20,28,43,.72) !important;
           border:1px solid rgba(37,50,74,.95) !important;
+          display:flex !important;
+          align-items:center !important;
+          justify-content:center !important;
+          font-size:22px !important;
+          line-height:1 !important;
+          color:var(--text) !important;
         }
 
         /* Poster + coeur (page film). */
@@ -128,6 +137,9 @@ def inject_wildflix_styles():
           z-index:20;
           width:48px;
           height:48px;
+          display:flex;
+          align-items:center;
+          justify-content:center;
         }
         div[class*="st-key-wf_film_poster_wrap_"] div[class*="st-key-wf_film_fav_"] button{
           width:48px !important;
@@ -136,6 +148,12 @@ def inject_wildflix_styles():
           border-radius:999px !important;
           background:rgba(20,28,43,.72) !important;
           border:1px solid rgba(37,50,74,.95) !important;
+          display:flex !important;
+          align-items:center !important;
+          justify-content:center !important;
+          font-size:24px !important;
+          line-height:1 !important;
+          color:var(--text) !important;
         }
         div[class*="st-key-wf_film_poster_wrap_"] div[data-testid="stImage"] img{
           border-radius:12px;
@@ -191,7 +209,7 @@ def render_movie_row(
                 poster = row.get("Poster", None)
 
                 liked = bool(imdb_key) and (imdb_key in favorites)
-                fav_icon = ":material/favorite:" if liked else ":material/favorite_border:"
+                fav_label = "♥" if liked else "♡"
 
                 with st.container(border=True, key=f"wf_card_{key}_{i}_{imdb_key or 'na'}"):
                     def _open_movie():
@@ -226,8 +244,7 @@ def render_movie_row(
                             st.info("Pas d'affiche.")
 
                         if st.button(
-                            " ",
-                            icon=fav_icon,
+                            fav_label,
                             key=fav_button_key,
                             type="tertiary",
                             disabled=not is_authenticated or not imdb_key,
@@ -241,7 +258,7 @@ def render_movie_row(
                             st.rerun()
                         if liked:
                             st.markdown(
-                                f"<style>div[class*=\"st-key-{fav_button_key}\"] button{{color:var(--danger);border-color:rgba(255,59,59,0.55);}}</style>",
+                                f"<style>div[class*=\"st-key-{fav_button_key}\"] button{{color:var(--danger) !important;border-color:rgba(255,59,59,0.55) !important;}}</style>",
                                 unsafe_allow_html=True,
                             )
 

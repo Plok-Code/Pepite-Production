@@ -86,28 +86,54 @@ def main():
     source_page = st.session_state.get("selected_source_page")
     back_page = source_page or "Home.py"
 
+    st.markdown(
+        """
+        <style>
+        div[class*="st-key-wf_bc_link_"] button{
+          background:transparent !important;
+          border:0 !important;
+          box-shadow:none !important;
+          border-radius:0 !important;
+          padding:0 !important;
+          min-height:0 !important;
+          color:var(--muted) !important;
+          font-weight:600 !important;
+          text-decoration:none !important;
+        }
+        div[class*="st-key-wf_bc_link_"] button:focus,
+        div[class*="st-key-wf_bc_link_"] button:focus-visible{
+          outline:none !important;
+          box-shadow:none !important;
+        }
+        div[class*="st-key-wf_bc_link_"] button:hover{
+          color:var(--text) !important;
+          text-decoration:underline !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
     left, right = st.columns([5, 1], vertical_alignment="center")
     with left:
         if source_page and source_page != "Home.py":
-            c1, c2, c3, c4, c5 = st.columns(
-                [1.4, 0.2, 1.6, 0.2, 6], vertical_alignment="center"
-            )
+            c1, c2, c3, c4, c5 = st.columns([1.2, 0.15, 1.8, 0.15, 6], vertical_alignment="center")
             with c1:
-                if st.button("Accueil", key=f"wf_bc_home_{imdb_key}"):
+                if st.button("Accueil", key=f"wf_bc_link_home_{imdb_key}"):
                     st.switch_page("Home.py")
             with c2:
                 st.caption(">")
             with c3:
-                if st.button(_source_label(source_page), key=f"wf_bc_src_{imdb_key}"):
+                if st.button(_source_label(source_page), key=f"wf_bc_link_src_{imdb_key}"):
                     st.switch_page(source_page)
             with c4:
                 st.caption(">")
             with c5:
                 st.caption(title)
         else:
-            c1, c2, c3 = st.columns([1.4, 0.2, 8], vertical_alignment="center")
+            c1, c2, c3 = st.columns([1.2, 0.15, 8], vertical_alignment="center")
             with c1:
-                if st.button("Accueil", key=f"wf_bc_home_{imdb_key}"):
+                if st.button("Accueil", key=f"wf_bc_link_home_{imdb_key}"):
                     st.switch_page("Home.py")
             with c2:
                 st.caption(">")
@@ -123,7 +149,7 @@ def main():
         is_authenticated = st.session_state.get("is_authenticated", False)
         favorites = st.session_state.setdefault("favorites", set())
         liked = imdb_key in favorites
-        fav_icon = ":material/favorite:" if liked else ":material/favorite_border:"
+        fav_label = "♥" if liked else "♡"
 
         with st.container(key=f"wf_film_poster_wrap_{imdb_key}"):
             if pd.notna(poster) and str(poster).strip():
@@ -133,8 +159,7 @@ def main():
 
             fav_key = f"wf_film_fav_{imdb_key}"
             if st.button(
-                " ",
-                icon=fav_icon,
+                fav_label,
                 type="tertiary",
                 disabled=not is_authenticated,
                 help=("Connectez-vous pour ajouter aux favoris." if not is_authenticated else None),
@@ -144,7 +169,7 @@ def main():
                 st.rerun()
             if liked:
                 st.markdown(
-                    f"<style>div[class*=\"st-key-{fav_key}\"] button{{color:var(--danger);border-color:rgba(255,59,59,0.55);}}</style>",
+                    f"<style>div[class*=\"st-key-{fav_key}\"] button{{color:var(--danger) !important;border-color:rgba(255,59,59,0.55) !important;}}</style>",
                     unsafe_allow_html=True,
                 )
 
