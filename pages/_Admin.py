@@ -1,12 +1,11 @@
 import os
-
 import streamlit as st
 from streamlit.errors import StreamlitSecretNotFoundError
 
 from utils.data_loader import load_movies
-from utils.auth import init_auth_state, login_form, logout_button, show_flash_toast, sidebar_navigation
 from utils.header import render_global_search
-from utils.theme import apply_wildflix_theme
+from utils.i18n import t
+from utils.layout import common_page_setup
 
 
 def _get_powerbi_embed_url() -> str | None:
@@ -15,7 +14,8 @@ def _get_powerbi_embed_url() -> str | None:
         return url
 
     try:
-        raw = st.secrets.get("POWERBI_EMBED_URL") or st.secrets.get("powerbi_embed_url")
+        raw = st.secrets.get("POWERBI_EMBED_URL") or st.secrets.get(
+            "powerbi_embed_url")
     except StreamlitSecretNotFoundError:
         return None
 
@@ -26,27 +26,23 @@ def _get_powerbi_embed_url() -> str | None:
 
 
 def main():
-    st.set_page_config(page_title="Admin", page_icon="A", layout="wide")
-    apply_wildflix_theme()
-    init_auth_state()
-    sidebar_navigation()
-    login_form()
-    logout_button()
-    show_flash_toast()
+    common_page_setup(page_title=t("admin_title"), page_icon="🔒")
 
-    if st.session_state.role != "admin":
-        st.error("Acces reserve aux administrateurs.")
+    if st.session_state.get("role") != "admin":
+        st.error(t("admin_access_denied"))
         st.stop()
 
     df = load_movies()
     render_global_search(df, source_page="pages/_Admin.py")
 
-    st.title("Espace admin")
+    st.title(t("admin_title"))
 
     tab_py, tab_bi = st.tabs(["Dashboard Python", "Dashboard Power BI"])
 
     with tab_py:
         st.subheader("Dashboard Python")
+        # Python dashboard logic can be added here
+        st.info("Section Dashboard Python en construction.")
 
     with tab_bi:
         st.subheader("Dashboard Power BI")
@@ -63,7 +59,8 @@ def main():
                 unsafe_allow_html=True,
             )
         else:
-            st.error("Power BI non configure. Ajoutez `POWERBI_EMBED_URL` (env ou secrets).")
+            st.error(
+                "Power BI non configure. Ajoutez `POWERBI_EMBED_URL` (env ou secrets).")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,204 @@
+import streamlit as st
+
+# Dictionary of translations
+TRANSLATIONS = {
+    "fr": {
+        # General
+        "app_title": "Pepite Production",
+        "home_title": "Accueil",
+        "genre_title": "Par genre",
+        "library_title": "Ma bibliothèque",
+        "favorites_title": "Mes favoris",
+        "recos_title": "Recommandations",
+        "settings_title": "Paramètres",
+        "profile_title": "Mon profil",
+        "admin_title": "Admin",
+        "search_placeholder": "Rechercher un film…",
+        "search_no_result": "Aucun résultat.",
+        "search_open": "Ouvrir",
+        "search_clear": "Effacer",
+        "search_results": "Résultats",
+        "search_choose": "Choisir un film…",
+
+        # Sections
+        "featured_section": "Films vedettes",
+        "gems_section": "Nos Pépites",
+        "niche_section": "Niche",
+        "top_n_genre": "Top {} en {}",
+        "click_to_open": "Cliquez sur un titre pour ouvrir la fiche du film.",
+
+        # Movie Card
+        "genre_label": "Genre :",
+        "rating_label": "Note :",
+        "director_label": "Réalisateur :",
+        "actors_label": "Acteurs :",
+        "duration_label": "Durée :",
+        "minutes": "min",
+
+        # Auth
+        "login_tab": "Connexion",
+        "signup_tab": "Inscription",
+        "email_label": "Email",
+        "password_label": "Mot de passe",
+        "password_confirm": "Confirmer le mot de passe",
+        "login_submit": "Se connecter",
+        "signup_submit": "Créer mon compte",
+        "logout_button": "Se déconnecter",
+        "logged_in_as": "Connecté en tant que {}",
+        "welcome_back": "Bon retour, {} !",
+        "auth_required": "Vous devez être connecté.",
+        "auth_required_favs": "Vous devez être connecté pour accéder à vos favoris.",
+        "auth_required_recos": "Vous devez être connecté pour voir vos recommandations.",
+        "auth_required_profile": "Vous devez être connecté pour accéder à votre profil.",
+        "admin_access_denied": "Accès réservé aux administrateurs.",
+        "invalid_credentials": "Identifiants invalides",
+        "passwords_mismatch": "Les mots de passe ne correspondent pas.",
+        "account_created": "Compte créé. Bienvenue !",
+        "mysql_fallback": "MySQL configuré, mais pymysql n'est pas installé. Fallback en stockage local.",
+        "mysql_unavailable": "MySQL configuré, mais indisponible. Fallback en stockage local.",
+        "disconnected": "Déconnecté",
+
+        # Profile
+        "profile_info_section": "Informations",
+        "profile_info_desc": "Modifiez vos données.",
+        "profile_security_section": "Sécurité",
+        "profile_security_desc": "Changez votre mot de passe.",
+        "pseudo_label": "Pseudo",
+        "save_button": "Enregistrer",
+        "update_button": "Mettre à jour",
+        "current_password": "Mot de passe actuel",
+        "new_password": "Nouveau mot de passe",
+        "confirm_new_password": "Confirmer",
+
+        # Favorites/Recos
+        "your_collection": "Votre collection",
+        "your_collection_desc": "Retrouvez ici tous les films que vous aimez.",
+        "no_favorites": "Vous n'avez pas encore de favoris. Ajoutez-en depuis l'accueil en cliquant sur le coeur !",
+        "for_you": "Pour vous",
+        "for_you_desc": "Sélection basée sur vos goûts.",
+        "no_favorites_hint": "Pour commencer, ajoutez des films à vos favoris (bouton coeur).",
+        "more_favorites_needed": "Ajoutez plus de favoris pour affiner nos suggestions.",
+        "added_to_favs": "Ajouté aux favoris.",
+        "removed_from_favs": "Retiré des favoris.",
+        "fav_saved_mysql": "Sauvegardé sur MySQL.",
+        "fav_saved_local": "Sauvegardé localement (MySQL indisponible).",
+    },
+    "en": {
+        # General
+        "app_title": "Pepite Production",
+        "home_title": "Home",
+        "genre_title": "By Genre",
+        "library_title": "My Library",
+        "favorites_title": "My Favorites",
+        "recos_title": "Recommendations",
+        "settings_title": "Settings",
+        "profile_title": "My Profile",
+        "admin_title": "Admin",
+        "search_placeholder": "Search for a movie...",
+        "search_no_result": "No results found.",
+        "search_open": "Open",
+        "search_clear": "Clear",
+        "search_results": "Results",
+        "search_choose": "Choose a movie...",
+
+        # Sections
+        "featured_section": "Featured Movies",
+        "gems_section": "Our Selection",
+        "niche_section": "Niche Picks",
+        "top_n_genre": "Top {} in {}",
+        "click_to_open": "Click a title to open movie details.",
+
+        # Movie Card
+        "genre_label": "Genre:",
+        "rating_label": "Rating:",
+        "director_label": "Director:",
+        "actors_label": "Cast:",
+        "duration_label": "Duration:",
+        "minutes": "min",
+
+        # Auth
+        "login_tab": "Login",
+        "signup_tab": "Sign Up",
+        "email_label": "Email",
+        "password_label": "Password",
+        "password_confirm": "Confirm Password",
+        "login_submit": "Log In",
+        "signup_submit": "Create Account",
+        "logout_button": "Log Out",
+        "logged_in_as": "Logged in as {}",
+        "welcome_back": "Welcome back, {}!",
+        "auth_required": "You must be logged in.",
+        "auth_required_favs": "You must be logged in to access your favorites.",
+        "auth_required_recos": "You must be logged in to see recommendations.",
+        "auth_required_profile": "You must be logged in to access your profile.",
+        "admin_access_denied": "Access reserved for administrators.",
+        "invalid_credentials": "Invalid credentials",
+        "passwords_mismatch": "Passwords do not match.",
+        "account_created": "Account created. Welcome!",
+        "mysql_fallback": "MySQL configured but pymysql not installed. Falling back to local storage.",
+        "mysql_unavailable": "MySQL configured but unavailable. Falling back to local storage.",
+        "disconnected": "Logged out",
+
+        # Profile
+        "profile_info_section": "Information",
+        "profile_info_desc": "Edit your details.",
+        "profile_security_section": "Security",
+        "profile_security_desc": "Change your password.",
+        "pseudo_label": "Username",
+        "save_button": "Save",
+        "update_button": "Update",
+        "current_password": "Current Password",
+        "new_password": "New Password",
+        "confirm_new_password": "Confirm",
+
+        # Favorites/Recos
+        "your_collection": "Your Collection",
+        "your_collection_desc": "Find all the movies you love here.",
+        "no_favorites": "You have no favorites yet. Add some from the homepage by clicking the heart!",
+        "for_you": "For You",
+        "for_you_desc": "Selection based on your tastes.",
+        "no_favorites_hint": "To start, add movies to your favorites (heart button).",
+        "more_favorites_needed": "Add more favorites to refine our suggestions.",
+        "added_to_favs": "Added to favorites.",
+        "removed_from_favs": "Removed from favorites.",
+        "fav_saved_mysql": "Saved to MySQL.",
+        "fav_saved_local": "Saved locally (MySQL unavailable).",
+    }
+}
+
+
+def get_current_language():
+    if "language" not in st.session_state:
+        st.session_state.language = "fr"
+    return st.session_state.language
+
+
+def set_language(lang):
+    st.session_state.language = lang
+
+
+def get_text(key, *args):
+    lang = get_current_language()
+    text = TRANSLATIONS.get(lang, TRANSLATIONS["fr"]).get(key, key)
+    if args:
+        return text.format(*args)
+    return text
+
+
+# Alias for brevity
+t = get_text
+
+
+def render_sidebar_flags():
+    # CSS for Sidebar Flags (smaller than before, ~40px)
+
+    # Layout - simpler 2 columns
+    c1, c2 = st.sidebar.columns(2)
+    with c1:
+        if st.button("🇫🇷", key="side_lang_fr", use_container_width=True):
+            set_language("fr")
+            st.rerun()
+    with c2:
+        if st.button("🇺🇸", key="side_lang_en", use_container_width=True):
+            set_language("en")
+            st.rerun()

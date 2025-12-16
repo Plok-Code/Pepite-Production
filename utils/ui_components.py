@@ -1,6 +1,7 @@
 import pandas as pd
 import streamlit as st
 from textwrap import dedent
+from utils.i18n import t
 
 
 def movie_card(row: pd.Series, show_add_fav: bool = False):
@@ -11,7 +12,8 @@ def movie_card(row: pd.Series, show_add_fav: bool = False):
         else:
             st.write("Pas d'affiche")
     with col2:
-        title_year = int(row["title_year"]) if not pd.isna(row["title_year"]) else "N/A"
+        title_year = int(row["title_year"]) if not pd.isna(
+            row["title_year"]) else "N/A"
         st.markdown(f"### {row['movie_title']} ({title_year})")
         st.write(f"Genre principal : {row.get('genre_main', 'N/A')}")
         st.write(f"Score global : {row.get('score_global', 'N/A')}")
@@ -22,6 +24,23 @@ def movie_card(row: pd.Series, show_add_fav: bool = False):
                 st.session_state.favorites.add(row["imdb_key"])
                 st.success("Ajoute aux favoris")
 
+            # Helper to check if liked for coloring (though movie_card button is simple)
+            is_fav = row["imdb_key"] in st.session_state.get(
+                "favorites", set())
+            if is_fav:
+                st.markdown(
+                    f"""<style>
+                    [class*="st-key-fav_{row['imdb_key']}"] {{
+                        border-color: transparent !important;
+                    }}
+                    [class*="st-key-fav_{row['imdb_key']}"] p,
+                    [class*="st-key-fav_{row['imdb_key']}"] span {{
+                        color: #FF3B3B !important;
+                    }}
+                    </style>""",
+                    unsafe_allow_html=True,
+                )
+
 
 def movie_tile(row: pd.Series, show_add_fav: bool = False, key_prefix: str = ""):
     title = row.get("movie_title", "N/A")
@@ -30,19 +49,23 @@ def movie_tile(row: pd.Series, show_add_fav: bool = False, key_prefix: str = "")
     director = row.get("director_name", "N/A")
     duration = row.get("duration", None)
 
-    actors = [row.get("actor_1_name"), row.get("actor_2_name"), row.get("actor_3_name")]
+    actors = [row.get("actor_1_name"), row.get(
+        "actor_2_name"), row.get("actor_3_name")]
     actors = [a for a in actors if pd.notna(a) and str(a).strip()]
 
     st.markdown(f"**{title}**")
-    st.write(f"Genre principal : {genre}" if pd.notna(genre) else "Genre principal : N/A")
+    st.write(f"Genre principal : {genre}" if pd.notna(
+        genre) else "Genre principal : N/A")
 
     if pd.notna(note):
         st.write(f"Note : {float(note):.2f}")
     else:
         st.write("Note : N/A")
 
-    st.write(f"Realisateur : {director}" if pd.notna(director) else "Realisateur : N/A")
-    st.write(f"Acteurs : {', '.join(map(str, actors))}" if actors else "Acteurs : N/A")
+    st.write(f"Realisateur : {director}" if pd.notna(
+        director) else "Realisateur : N/A")
+    st.write(
+        f"Acteurs : {', '.join(map(str, actors))}" if actors else "Acteurs : N/A")
 
     if pd.notna(duration):
         st.write(f"Duree : {int(duration)} min")
@@ -57,120 +80,8 @@ def movie_tile(row: pd.Series, show_add_fav: bool = False, key_prefix: str = "")
 
 
 def inject_wildflix_styles():
-    st.markdown(
-        dedent(
-            """
-        <style>
-        /* Masque le menu multipage par defaut (on utilise notre navigation custom). */
-        [data-testid="stSidebarNav"] { display: none; }
-
-        /* Active le scroll horizontal pour les rangées de films (container key prefix wf-scroll-...). */
-        [class*="st-key-wf-scroll-"] div[data-testid="stHorizontalBlock"] {
-          overflow-x: auto;
-          flex-wrap: nowrap;
-          gap: 14px;
-          padding-bottom: 8px;
-        }
-        [class*="st-key-wf-scroll-"] div[data-testid="column"] {
-          min-width: 240px;
-        }
-
-        /* Cartes films */
-        [class*="st-key-wf_card_"] {
-          background: var(--surface);
-          border: 1px solid var(--border);
-          border-radius: var(--radius);
-          box-shadow: var(--shadow);
-          padding: 12px;
-        }
-
-        /* Affiches cliquables (boutons Streamlit styles en poster). */
-        [class*="st-key-wf_poster_btn_"] button {
-          height: 340px;
-          padding: 0;
-          border-radius: 12px;
-          background-size: contain;
-          background-position: center;
-          background-repeat: no-repeat;
-          background-color: var(--surface);
-          border: 1px solid var(--border);
-          overflow: hidden;
-        }
-        [class*="st-key-wf_poster_btn_"] button > div {
-          opacity: 0;
-        }
-
-        /* Bouton coeur superpose sur les posters (cartes). */
-        [class*="st-key-wf_poster_wrap_"]{ position: relative; }
-        [class*="st-key-wf_poster_wrap_"] [class*="st-key-wf_fav_overlay_"]{
-          position:absolute;
-          top:10px;
-          right:10px;
-          z-index:20;
-          width:44px;
-          height:44px;
-          display:flex;
-          align-items:center;
-          justify-content:center;
-        }
-        [class*="st-key-wf_poster_wrap_"] [class*="st-key-wf_fav_overlay_"] button{
-          width:44px !important;
-          height:44px !important;
-          padding:0 !important;
-          border-radius:999px !important;
-          background:rgba(20,28,43,.72) !important;
-          border:1px solid rgba(37,50,74,.95) !important;
-          display:flex !important;
-          align-items:center !important;
-          justify-content:center !important;
-          font-size:22px !important;
-          line-height:1 !important;
-          color:var(--text) !important;
-        }
-
-        /* Poster + coeur (page film). */
-        [class*="st-key-wf_film_poster_wrap_"]{ position: relative; }
-        [class*="st-key-wf_film_poster_wrap_"] [class*="st-key-wf_film_fav_"]{
-          position:absolute;
-          top:12px;
-          right:12px;
-          z-index:20;
-          width:48px;
-          height:48px;
-          display:flex;
-          align-items:center;
-          justify-content:center;
-        }
-        [class*="st-key-wf_film_poster_wrap_"] [class*="st-key-wf_film_fav_"] button{
-          width:48px !important;
-          height:48px !important;
-          padding:0 !important;
-          border-radius:999px !important;
-          background:rgba(20,28,43,.72) !important;
-          border:1px solid rgba(37,50,74,.95) !important;
-          display:flex !important;
-          align-items:center !important;
-          justify-content:center !important;
-          font-size:24px !important;
-          line-height:1 !important;
-          color:var(--text) !important;
-        }
-        [class*="st-key-wf_film_poster_wrap_"] div[data-testid="stImage"] img{
-          border-radius:12px;
-          border:1px solid var(--border);
-        }
-
-        /* Titres des films plus lisibles dans les cartes. */
-        [class*="st-key-wf-scroll-"] button[data-testid="baseButton-secondary"] {
-          font-weight: 700;
-          text-align: left;
-          white-space: normal;
-        }
-        </style>
-        """
-        ).strip(),
-        unsafe_allow_html=True,
-    )
+    # Deprecated: CSS is now injected by apply_wildflix_theme()
+    pass
 
 
 def _format_note(value) -> str:
@@ -189,7 +100,9 @@ def render_movie_row(
 ):
     from utils.auth import toggle_favorite
 
-    inject_wildflix_styles()
+    from utils.auth import toggle_favorite
+
+    # inject_wildflix_styles()  <-- REMOVED: Now called by pages directly to avoid duplication
 
     is_authenticated = st.session_state.get("is_authenticated", False)
     favorites = st.session_state.setdefault("favorites", set())
@@ -204,7 +117,8 @@ def render_movie_row(
         for i, (_, row) in enumerate(df_iter.iterrows()):
             with cols[i]:
                 imdb_key_raw = row.get("imdb_key")
-                imdb_key = str(imdb_key_raw) if pd.notna(imdb_key_raw) else None
+                imdb_key = str(imdb_key_raw) if pd.notna(
+                    imdb_key_raw) else None
                 title = row.get("movie_title", "N/A")
                 poster = row.get("Poster", None)
 
@@ -214,6 +128,7 @@ def render_movie_row(
                 with st.container(border=True, key=f"wf_card_{key}_{i}_{imdb_key or 'na'}"):
                     def _open_movie():
                         st.session_state["selected_imdb_key"] = imdb_key
+                        st.query_params["id"] = imdb_key
                         if source_page:
                             st.session_state["selected_source_page"] = source_page
                         if target_page:
@@ -221,10 +136,13 @@ def render_movie_row(
                         else:
                             st.rerun()
 
-                    poster_url = str(poster) if pd.notna(poster) and str(poster).strip() else None
+                    poster_url = str(poster) if pd.notna(
+                        poster) and str(poster).strip() else None
                     poster_key = f"wf_poster_btn_{key}_{i}_{imdb_key or 'na'}"
                     fav_button_key = f"wf_fav_overlay_{key}_{i}_{imdb_key or 'na'}"
+
                     with st.container(key=f"wf_poster_wrap_{key}_{i}_{imdb_key or 'na'}"):
+                        # 1. Poster Button (Rendered FIRST so it is behind)
                         if poster_url and imdb_key:
                             safe_url = poster_url.replace("'", "%27")
                             st.markdown(
@@ -243,25 +161,21 @@ def render_movie_row(
                         else:
                             st.info("Pas d'affiche.")
 
-                        if st.button(
-                            fav_label,
-                            key=fav_button_key,
-                            type="tertiary",
-                            disabled=not is_authenticated or not imdb_key,
-                            help=(
-                                "Connectez-vous pour ajouter aux favoris."
-                                if not is_authenticated
-                                else None
-                            ),
-                        ):
-                            toggle_favorite(imdb_key)
-                            st.rerun()
-                        if liked:
-                            st.markdown(
-                                f"<style>[class*=\"st-key-{fav_button_key}\"] button{{color:var(--danger) !important;border-color:rgba(255,59,59,0.55) !important;}}</style>",
-                                unsafe_allow_html=True,
-                            )
+                        # 2. Heart Overlay Wrapper (Rendered SECOND so it is ON TOP)
+                        fav_key_wrapper = f"wf_fav_overlay_container_{key}_{i}_{imdb_key or 'na'}"
+                        with st.container(key=fav_key_wrapper):
+                            # Primary button invisible effectively, served as click target
+                            if st.button(
+                               fav_label,
+                               key=fav_button_key,
+                               type="primary",
+                               help="Ajouter/Retirer des favoris",
+                               disabled=not is_authenticated or not imdb_key,
+                               ):
+                                toggle_favorite(imdb_key)
+                                st.rerun()
 
+                    # Title / Open Button (Full Width Block)
                     if st.button(
                         str(title),
                         key=f"{key}_open_{imdb_key or 'na'}_{i}",
@@ -275,21 +189,39 @@ def render_movie_row(
 
                     genre = row.get("genre_main", "N/A")
                     note = _format_note(row.get("score_global", None))
-                    director = row.get("director_name", "N/A")
-                    duration = row.get("duration", None)
+                    director_val = row.get("director_name")
+                    director = str(director_val) if pd.notna(
+                        director_val) else "N/A"
+                    duration_val = row.get("duration")
+                    duration = f"{int(duration_val)} min" if pd.notna(
+                        duration_val) else "N/A"
 
-                    actors = [row.get("actor_1_name"), row.get("actor_2_name"), row.get("actor_3_name")]
-                    actors = [a for a in actors if pd.notna(a) and str(a).strip()]
-                    actors_str = ", ".join(map(str, actors)) if actors else "N/A"
+                    actors_list = [row.get("actor_1_name"), row.get(
+                        "actor_2_name"), row.get("actor_3_name")]
+                    actors_clean = [
+                        str(a) for a in actors_list if pd.notna(a) and str(a).strip()]
+                    actors_str = ", ".join(
+                        actors_clean) if actors_clean else "N/A"
 
-                    st.caption(f"Genre principal : {genre}")
-                    st.caption(f"Note : {note}")
-                    st.caption(f"Realisateur : {director}")
-                    st.caption(f"Acteurs : {actors_str}")
-                    if pd.notna(duration):
-                        st.caption(f"Duree : {int(duration)} min")
-                    else:
-                        st.caption("Duree : N/A")
+                    # Labels Translation
+                    lbl_genre = t("genre_label")
+                    lbl_note = t("rating_label")
+                    lbl_dir = t("director_label")
+                    lbl_act = t("actors_label")
+                    lbl_dur = t("duration_label")
+                    unit_min = t("minutes")
+
+                    # Custom HTML for perfectly aligned metadata grid with Pinned Bottom
+                    meta_html = f"""
+                    <div class="wf-meta-container">
+                        <div class="wf-meta-row">{lbl_genre} {genre}</div>
+                        <div class="wf-meta-row">{lbl_note} {note}</div>
+                        <div class="wf-meta-row wf-meta-text">{lbl_dir} {director}</div>
+                        <div class="wf-meta-row wf-meta-text">{lbl_act} {actors_str}</div>
+                        <div class="wf-meta-row wf-meta-duration">{lbl_dur} {duration}</div>
+                    </div>
+                    """
+                    st.markdown(meta_html, unsafe_allow_html=True)
 
 
 def section_title(title: str, subtitle: str | None = None):
