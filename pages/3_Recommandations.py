@@ -7,7 +7,6 @@ from utils.i18n import t
 from utils.layout import common_page_setup
 from services.recommendation_service import (
     get_recommendations_from_favorites,
-    get_recommender_info,
 )
 
 
@@ -25,15 +24,6 @@ def main():
     section_title(t("for_you"), t("for_you_desc"))
 
     favorites = st.session_state.setdefault("favorites", set())
-
-    backend, reason = get_recommender_info()
-    if backend != "knn_cosine":
-        st.warning(
-            t("reco_fallback_warning", reason or "ML indisponible."),
-        )
-        st.caption(t("reco_install_hint"))
-    else:
-        st.caption(t("reco_backend_in_use"))
 
     if not favorites:
         st.info(t("no_favorites_hint"))

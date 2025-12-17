@@ -14,7 +14,9 @@ from utils.data_loader import load_movies
 from utils.header import render_global_search
 from utils.i18n import t
 from utils.layout import common_page_setup
+from utils.settings import get_recommender_model, set_recommender_model
 from utils.ui_components import render_movie_row, section_title
+from services.recommendation_service import get_recommender_info
 
 
 def _get_powerbi_embed_url() -> str | None:
@@ -144,8 +146,9 @@ def main():
     filtered_users = apply_user_filters(users_df, **filters)
     filtered_favs = favorites_for_users(favorites_df, filtered_users)
 
-    tab_home, tab_py, tab_bi = st.tabs(
-        [t("admin_home_tab"), "Dashboard Python", "Dashboard Power BI"])
+    tab_home, tab_py, tab_bi, tab_settings = st.tabs(
+        [t("admin_home_tab"), "Dashboard Python", "Dashboard Power BI", t("admin_settings_tab")]
+    )
 
     with tab_home:
         section_title(t("admin_top_liked"), t("admin_top_liked_desc"))
@@ -284,6 +287,38 @@ def main():
             </script>
             """
             components.html(html_code, height=650)
+
+    with tab_settings:
+        section_title(t("admin_settings_tab"))
+
+        current_model = get_recommender_model()
+        options = ["cosine", "euclidean", "manhattan"]
+        selected = st.selectbox(
+            t("admin_reco_model_label"),
+            options=options,
+            index=(options.index(current_model) if current_model in options else 0),
+            format_func=lambda v: (
+                "KNN cosine" if v == "cosine" else "KNN euclidean" if v == "euclidean" else "KNN manhattan"
+            ),
+            help=t("admin_reco_model_help"),
+            key="wf_admin_reco_model",
+        )
+
+        c1, c2 = st.columns([1, 3], vertical_alignment="center")
+        with c1:
+            if st.button(t("save_button"), type="primary", key="wf_admin_reco_save"):
+                set_recommender_model(selected)
+                st.success(t("admin_settings_saved"))
+                st.rerun()
+        with c2:
+            backend, reason = get_recommender_info()
+            st.caption(
+                t(
+                    "admin_reco_backend_status",
+                    "ML" if backend == "knn_cosine" else "Fallback",
+                    (reason or "").strip() or "-",
+                )
+            )
 
 
 if __name__ == "__main__":

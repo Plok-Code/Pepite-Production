@@ -5,6 +5,7 @@ TRANSLATIONS = {
     "fr": {
         # General
         "app_title": "Pepite Production",
+        "home_intro": "Découvrez des films, ajoutez vos favoris et obtenez des recommandations personnalisées - site réalisé dans le cadre d'un projet scolaire.",
         "home_title": "Accueil",
         "genre_title": "Par genre",
         "library_title": "Ma bibliothèque",
@@ -12,6 +13,7 @@ TRANSLATIONS = {
         "recos_title": "Recommandations",
         "settings_title": "Paramètres",
         "profile_title": "Mon profil",
+        "cinemas_title": "Nos salles de cinéma",
         "admin_title": "Admin",
         "search_submit": "Rechercher",
         "search_page_title": "Recherche",
@@ -38,6 +40,11 @@ TRANSLATIONS = {
         "admin_likes_by_genre": "Likes par genre",
         "admin_likes_by_language": "Likes par langue",
         "admin_powerbi_note": "Note : l'iframe Power BI ne peut pas être filtrée automatiquement depuis Streamlit sans intégration via l'API Power BI.",
+        "admin_settings_tab": "Modèles de recommandation",
+        "admin_reco_model_label": "Modèle de recommandation",
+        "admin_reco_model_help": "Choisissez le modèle ML utilisé partout dans l'application.",
+        "admin_settings_saved": "Réglages enregistrés.",
+        "admin_reco_backend_status": "Moteur : {} — {}",
         "search_placeholder": "Rechercher un film…",
         "search_no_result": "Aucun résultat.",
         "search_open": "Ouvrir",
@@ -106,6 +113,18 @@ TRANSLATIONS = {
         "new_password": "Nouveau mot de passe",
         "confirm_new_password": "Confirmer",
 
+        # Cinemas
+        "cinemas_context_title": "Contexte du projet",
+        "cinemas_context_body": "Vous êtes un Data Analyst freelance. Un cinéma en perte de vitesse situé dans la Creuse vous contacte. Il a décidé de passer le cap du digital en créant un site Internet taillé pour les locaux. Pour aller encore plus loin, il vous demande de créer un moteur de recommandations de films.\n\nPour l’instant, aucun client n’a renseigné ses préférences, vous êtes dans une situation de cold start.",
+        "cinemas_construction_title": "Page en construction",
+        "cinemas_construction_body": "Cette page affichera bientôt la programmation du cinéma (films à l’affiche) ainsi que les événements et animations.",
+        "contact_title": "Contact",
+        "contact_name_label": "Nom",
+        "contact_message_label": "Message",
+        "contact_send": "Envoyer",
+        "contact_sent": "Merci ! Votre message a été enregistré (démo).",
+        "contact_disclaimer": "Ce formulaire est en cours de construction et n’envoie pas encore d’email.",
+
         # Favorites/Recos
         "your_collection": "Votre collection",
         "your_collection_desc": "Retrouvez ici tous les films que vous aimez.",
@@ -128,6 +147,7 @@ TRANSLATIONS = {
     "en": {
         # General
         "app_title": "Pepite Production",
+        "home_intro": "Discover movies, add favorites, and get personalized recommendations - a site created as part of a school project.",
         "home_title": "Home",
         "genre_title": "By Genre",
         "library_title": "My Library",
@@ -135,6 +155,7 @@ TRANSLATIONS = {
         "recos_title": "Recommendations",
         "settings_title": "Settings",
         "profile_title": "My Profile",
+        "cinemas_title": "Our cinemas",
         "admin_title": "Admin",
         "search_submit": "Search",
         "search_page_title": "Search",
@@ -161,6 +182,11 @@ TRANSLATIONS = {
         "admin_likes_by_genre": "Likes by genre",
         "admin_likes_by_language": "Likes by language",
         "admin_powerbi_note": "Note: the Power BI iframe can't be auto-filtered from Streamlit without using the Power BI API integration.",
+        "admin_settings_tab": "Recommendation models",
+        "admin_reco_model_label": "Recommendation model",
+        "admin_reco_model_help": "Choose the ML model used across the app.",
+        "admin_settings_saved": "Settings saved.",
+        "admin_reco_backend_status": "Engine: {} — {}",
         "search_placeholder": "Search for a movie...",
         "search_no_result": "No results found.",
         "search_open": "Open",
@@ -228,6 +254,18 @@ TRANSLATIONS = {
         "current_password": "Current Password",
         "new_password": "New Password",
         "confirm_new_password": "Confirm",
+
+        # Cinemas
+        "cinemas_context_title": "Project context",
+        "cinemas_context_body": "You are a freelance Data Analyst. A struggling cinema located in Creuse contacts you. It has decided to go digital by creating a website tailored for locals. To go even further, it asks you to build a movie recommendation engine.\n\nFor now, no customer has provided preferences: you are in a cold start situation.",
+        "cinemas_construction_title": "Page under construction",
+        "cinemas_construction_body": "This page will soon show the cinema’s schedule (now showing) as well as events and special screenings.",
+        "contact_title": "Contact",
+        "contact_name_label": "Name",
+        "contact_message_label": "Message",
+        "contact_send": "Send",
+        "contact_sent": "Thanks! Your message has been saved (demo).",
+        "contact_disclaimer": "This form is under construction and does not send emails yet.",
 
         # Favorites/Recos
         "your_collection": "Your Collection",

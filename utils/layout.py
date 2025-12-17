@@ -1,4 +1,5 @@
 import streamlit as st
+from pathlib import Path
 from utils.auth import (
     init_auth_state,
     login_form,
@@ -14,8 +15,12 @@ def common_page_setup(page_title: str, page_icon: str = "🎬", layout: str = "w
     """
     Handles standard page configuration and initialization steps.
     """
-    st.set_page_config(page_title=page_title,
-                       page_icon=page_icon, layout=layout)
+    icon_path = Path(__file__).resolve().parent.parent / "assets" / "logo_pepite_prodseul.png"
+    st.set_page_config(
+        page_title=page_title,
+        page_icon=(str(icon_path) if icon_path.exists() else page_icon),
+        layout=layout,
+    )
 
     apply_wildflix_theme()
     # Note: inject_wildflix_styles from ui_components is no longer needed

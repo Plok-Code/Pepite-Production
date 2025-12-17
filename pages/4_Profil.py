@@ -26,9 +26,9 @@ def main():
 
     st.title(t("profile_title"))
 
-    col1, col2 = st.columns(2)
+    tab_info, tab_security = st.tabs([t("profile_info_section"), t("profile_security_section")])
 
-    with col1:
+    with tab_info:
         with st.container(border=True):
             section_title(t("profile_info_section"), t("profile_info_desc"))
 
@@ -131,12 +131,12 @@ def main():
                     if ok:
                         st.session_state["flash_message"] = message
                         st.rerun()
-                    st.error(message)
+                    else:
+                        st.error(message)
 
-    with col2:
+    with tab_security:
         with st.container(border=True):
-            section_title(t("profile_security_section"),
-                          t("profile_security_desc"))
+            section_title(t("profile_security_section"), t("profile_security_desc"))
             with st.form("wf_password_form"):
                 current_password = st.text_input(
                     t("current_password"), type="password")

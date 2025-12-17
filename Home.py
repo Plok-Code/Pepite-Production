@@ -22,7 +22,7 @@ def main():
     df = load_movies()
     render_global_search(df, source_page="Home.py")
 
-    st.title(t("app_title"))
+    st.caption(t("home_intro"))
 
     # Logic to fetch movies
     used_keys: set[str] = set()

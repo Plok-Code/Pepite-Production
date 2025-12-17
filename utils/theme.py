@@ -47,6 +47,22 @@ def apply_wildflix_theme():
           border-right:1px solid var(--border);
         }
 
+        /* Logged-in user line (sidebar) */
+        .wf-connected-as{
+          margin: 8px 0 10px 0;
+          padding: 10px 12px;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-btn);
+          text-align: center;
+          font-weight: 700;
+          color: var(--muted);
+        }
+        .wf-connected-as__name{
+          color: var(--text);
+          font-weight: 800;
+        }
+
         /* Inputs */
         input, textarea{
           background:var(--surface) !important;
@@ -113,7 +129,8 @@ def apply_wildflix_theme():
           gap: 16px;
           padding-bottom: 8px;
         }
-        [class*="st-key-wf-scroll-"] div[data-testid="column"] {
+        [class*="st-key-wf-scroll-"] div[data-testid="column"],
+        [class*="st-key-wf-scroll-"] div[data-testid="stColumn"] {
           min-width: 260px;
           max-width: 260px; /* Strict sizing */
           flex: 0 0 260px;
@@ -126,6 +143,9 @@ def apply_wildflix_theme():
           border-radius: var(--radius);
           box-shadow: var(--shadow);
           padding: 12px;
+          width: 260px !important;
+          min-width: 260px !important;
+          max-width: 260px !important;
           height: 640px !important;  /* Reduced from 680px to 640px per user request */
           min-height: 640px !important;
           max-height: 640px !important;
@@ -152,7 +172,7 @@ def apply_wildflix_theme():
           width: 100% !important;
           padding: 0;
           border-radius: 12px;
-          background-size: cover !important;
+          background-size: contain !important;
           background-position: center;
           background-repeat: no-repeat;
           background-color: var(--surface);

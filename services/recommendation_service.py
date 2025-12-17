@@ -8,14 +8,19 @@ from typing import Any
 
 import pandas as pd
 
+from utils.settings import get_recommender_model
 from utils.text import normalize_text
 
 
-_DEFAULT_KNN_MODEL_PATH = Path(__file__).resolve().parent.parent / "ml" / "KNN_cosine.pkl"
-KNN_MODEL_PATH = _DEFAULT_KNN_MODEL_PATH
+_KNN_MODELS_DIR = Path(__file__).resolve().parent.parent / "ml"
 
 
-@lru_cache(maxsize=1)
+def _get_knn_model_path() -> Path:
+    model = get_recommender_model()
+    return _KNN_MODELS_DIR / f"KNN_{model}.pkl"
+
+
+@lru_cache(maxsize=3)
 def _load_knn_model(path: str) -> Any | None:
     model_path = Path(path)
     if not model_path.exists():
@@ -130,7 +135,7 @@ def get_recommendations_from_favorites(df: pd.DataFrame, favorites: set[str], n:
     if not favorites or "imdb_key" not in df.columns or df.empty:
         return df.head(0)
 
-    model = _load_knn_model(str(_DEFAULT_KNN_MODEL_PATH))
+    model = _load_knn_model(str(_get_knn_model_path()))
     if model is not None and hasattr(model, "kneighbors") and hasattr(model, "_fit_X"):
         key_to_index = _build_key_to_index(df)
         fav_indices = [key_to_index.get(str(k)) for k in set(map(str, favorites))]
@@ -193,7 +198,7 @@ def get_recommender_info() -> tuple[str, str | None]:
       - "knn_cosine": the ML model is loaded and used.
       - "fallback": keyword-based cosine fallback is used.
     """
-    model_path = KNN_MODEL_PATH
+    model_path = _get_knn_model_path()
     if not model_path.exists():
         return "fallback", f"Modèle introuvable: {model_path.name}"
 

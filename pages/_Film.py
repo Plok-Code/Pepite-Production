@@ -1,7 +1,7 @@
 import pandas as pd
 import streamlit as st
 
-from services.recommendation_service import get_recommender_info, get_similar_movies
+from services.recommendation_service import get_similar_movies
 from utils.auth import toggle_favorite
 from utils.data_loader import load_movies
 from utils.header import render_global_search
@@ -84,10 +84,26 @@ def _inject_film_styles():
           box-shadow: none !important;
           padding: 0 !important;
           min-height: 0 !important;
+          opacity: 1 !important;
+          color: var(--danger) !important;
+          -webkit-text-fill-color: var(--danger) !important;
+          fill: var(--danger) !important;
+          font-size: 48px !important;
+          font-weight: 400 !important;
+          line-height: 1 !important;
+          margin: 0 !important;
+          text-shadow: 0 4px 10px rgba(0,0,0,0.8) !important;
+          transform: scale(1.2) !important;
+          transform-origin: center center !important;
+          width: auto !important;
+          height: auto !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
         }
         [class*="st-key-wf_film_fav_"] button:hover{
           background: transparent !important;
-          transform: scale(1.1) !important;
+          transform: scale(1.3) !important;
           transition: transform 0.2s ease !important;
         }
         html body [class*="st-key-wf_film_fav_"] button p,
@@ -97,14 +113,13 @@ def _inject_film_styles():
           color: var(--danger) !important;
           -webkit-text-fill-color: var(--danger) !important;
           fill: var(--danger) !important;
-          font-size: 48px !important;
-          font-weight: 400 !important;
-          line-height: 1 !important;
+          font-size: inherit !important;
+          font-weight: inherit !important;
+          line-height: inherit !important;
           margin: 0 !important;
           padding: 0 !important;
-          text-shadow: 0 4px 10px rgba(0,0,0,0.8) !important;
-          transform: scale(1.2) !important;
-          transform-origin: center center !important;
+          text-shadow: inherit !important;
+          transform: none !important;
         }
         </style>
         """,
@@ -273,11 +288,6 @@ def main():
 
     st.markdown("---")
     st.subheader(t("similar_movies_title"))
-    backend, reason = get_recommender_info()
-    if backend != "knn_cosine":
-        st.caption(t("reco_fallback_short", reason or "ML indisponible."))
-        st.caption(t("reco_install_hint"))
-
     similar_ml = get_similar_movies(df, imdb_key, n=5)
     if similar_ml.empty:
         st.info(t("no_similar_movies"))

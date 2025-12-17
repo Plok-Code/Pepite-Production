@@ -16,6 +16,8 @@ import hashlib
 import base64
 import time
 import json
+import html
+from pathlib import Path
 
 from utils.app_config import get_secret_key
 
@@ -258,12 +260,16 @@ def login_dialog():
 
 def login_form():
     if st.session_state.get("is_authenticated", False):
-        pseudo = st.session_state.get("pseudo") or "Utilisateur"
-        c1, c2 = st.sidebar.columns([1, 4])
-        with c1:
-            st.write("👤")
-        with c2:
-            st.write(f"**{pseudo}**")
+        pseudo = str(st.session_state.get("pseudo") or "").strip() or "Utilisateur"
+        pseudo_html = html.escape(pseudo)
+        connected_html = t(
+            "logged_in_as",
+            f"<span class=\"wf-connected-as__name\">{pseudo_html}</span>",
+        )
+        st.sidebar.markdown(
+            f"<div class=\"wf-connected-as\">{connected_html}</div>",
+            unsafe_allow_html=True,
+        )
         return
 
     # Single elegant button to open modal
@@ -423,8 +429,15 @@ def sidebar_navigation():
         unsafe_allow_html=True,
     )
 
+    logo_path = Path(__file__).resolve().parent.parent / "assets" / "logo_pepite_prod.png"
+    if logo_path.exists():
+        st.sidebar.image(str(logo_path), use_container_width=True)
+
     if st.sidebar.button(t("home_title"), key="wf_nav_home", use_container_width=True):
         st.switch_page("Home.py")
+
+    if st.sidebar.button(t("cinemas_title"), key="wf_nav_cinemas", use_container_width=True):
+        st.switch_page("pages/5_Nos_salles_de_cinema.py")
 
     if st.sidebar.button(t("genre_title"), key="wf_nav_genre", use_container_width=True):
         st.switch_page("pages/1_Par_genre.py")

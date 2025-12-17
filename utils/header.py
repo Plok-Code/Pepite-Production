@@ -23,7 +23,7 @@ def _get_brand_logo_data_uri() -> str | None:
 
     try:
         img = Image.open(logo_path)
-        img.thumbnail((260, 78))
+        img.thumbnail((340, 110))
         buf = BytesIO()
         img.save(buf, format="PNG", optimize=True)
         b64 = base64.b64encode(buf.getvalue()).decode("ascii")
@@ -53,7 +53,7 @@ def render_global_search(
 ) -> None:
     # NOTE: `df` and `target_page` kept for backward compatibility.
     with st.container():
-        c1, c2, c3, c4 = st.columns([1.8, 6, 1.2, 0.8], vertical_alignment="center")
+        c1, c2, c3 = st.columns([2.2, 6, 1.2], vertical_alignment="center")
 
         with c1:
             logo_uri = _get_brand_logo_data_uri()
@@ -69,8 +69,8 @@ def render_global_search(
                       background-color: transparent !important;
                       border: 0 !important;
                       padding: 0 !important;
-                      height: 54px !important;
-                      min-height: 54px !important;
+                      height: 72px !important;
+                      min-height: 72px !important;
                     }}
                     [class*="st-key-wf_brand_home_logo"] button > div{{ opacity: 0 !important; }}
                     </style>
@@ -106,8 +106,3 @@ def render_global_search(
                 type="secondary",
             ):
                 _submit_global_search(source_page)
-
-        with c4:
-            if st.button("X", key="wf_global_search_clear", use_container_width=True):
-                st.session_state["wf_global_search_query"] = ""
-                st.rerun()
