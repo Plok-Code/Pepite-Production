@@ -196,6 +196,10 @@ def render_movie_row(
                     duration = f"{int(duration_val)} min" if pd.notna(
                         duration_val) else "N/A"
 
+                    language_val = row.get("language")
+                    language = str(language_val) if pd.notna(
+                        language_val) and str(language_val).strip() else "N/A"
+
                     actors_list = [row.get("actor_1_name"), row.get(
                         "actor_2_name"), row.get("actor_3_name")]
                     actors_clean = [
@@ -208,6 +212,7 @@ def render_movie_row(
                     lbl_note = t("rating_label")
                     lbl_dir = t("director_label")
                     lbl_act = t("actors_label")
+                    lbl_lang = t("language_label")
                     lbl_dur = t("duration_label")
                     unit_min = t("minutes")
 
@@ -218,6 +223,7 @@ def render_movie_row(
                         <div class="wf-meta-row">{lbl_note} {note}</div>
                         <div class="wf-meta-row wf-meta-text">{lbl_dir} {director}</div>
                         <div class="wf-meta-row wf-meta-text">{lbl_act} {actors_str}</div>
+                        <div class="wf-meta-row">{lbl_lang} {language}</div>
                         <div class="wf-meta-row wf-meta-duration">{lbl_dur} {duration}</div>
                     </div>
                     """

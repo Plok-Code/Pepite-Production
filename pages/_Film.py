@@ -1,6 +1,7 @@
 import pandas as pd
 import streamlit as st
 
+from services.recommendation_service import get_recommender_info, get_similar_movies
 from utils.auth import toggle_favorite
 from utils.data_loader import load_movies
 from utils.header import render_global_search
@@ -73,6 +74,37 @@ def _inject_film_styles():
         [class*="st-key-wf_bc_link_"] button:hover{
           color:var(--text) !important;
           text-decoration:underline !important;
+        }
+
+        /* Film page: heart button (match card hearts) */
+        [class*="st-key-wf_film_fav_"]{ overflow: visible; }
+        [class*="st-key-wf_film_fav_"] button{
+          border: none !important;
+          background: transparent !important;
+          box-shadow: none !important;
+          padding: 0 !important;
+          min-height: 0 !important;
+        }
+        [class*="st-key-wf_film_fav_"] button:hover{
+          background: transparent !important;
+          transform: scale(1.1) !important;
+          transition: transform 0.2s ease !important;
+        }
+        html body [class*="st-key-wf_film_fav_"] button p,
+        html body [class*="st-key-wf_film_fav_"] button span,
+        html body [class*="st-key-wf_film_fav_"] button div,
+        html body [class*="st-key-wf_film_fav_"] button *{
+          color: var(--danger) !important;
+          -webkit-text-fill-color: var(--danger) !important;
+          fill: var(--danger) !important;
+          font-size: 48px !important;
+          font-weight: 400 !important;
+          line-height: 1 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          text-shadow: 0 4px 10px rgba(0,0,0,0.8) !important;
+          transform: scale(1.2) !important;
+          transform-origin: center center !important;
         }
         </style>
         """,
@@ -180,34 +212,6 @@ def main():
                 toggle_favorite(imdb_key)
                 st.rerun()
 
-        if liked:
-            st.markdown(
-                f"""<style>
-                /* Heart Style Above Title */
-                [class*="st-key-{fav_key}"] button {{
-                    border: none !important;
-                    background: transparent !important;
-                    box-shadow: none !important;
-                    padding: 0 !important;
-                }}
-                [class*="st-key-{fav_key}"] button:hover {{
-                    border: none !important;
-                    background: transparent !important;
-                    transform: scale(1.1) !important;
-                    transition: transform 0.2s ease !important;
-                }}
-                [class*="st-key-{fav_key}"] button p,
-                [class*="st-key-{fav_key}"] button span,
-                [class*="st-key-{fav_key}"] button div {{
-                    color: #FF3B3B !important;
-                    font-size: 48px !important;
-                    text-shadow: 0 4px 10px rgba(0,0,0,0.8) !important;
-                    line-height: 1 !important;
-                }}
-                </style>""",
-                unsafe_allow_html=True,
-            )
-
         st.markdown(
             f"<h1 style='text-align: center;'>{title}</h1>", unsafe_allow_html=True)
 
@@ -266,6 +270,25 @@ def main():
         st.write(str(plot))
     else:
         st.write("Synopsis indisponible.")
+
+    st.markdown("---")
+    st.subheader(t("similar_movies_title"))
+    backend, reason = get_recommender_info()
+    if backend != "knn_cosine":
+        st.caption(t("reco_fallback_short", reason or "ML indisponible."))
+        st.caption(t("reco_install_hint"))
+
+    similar_ml = get_similar_movies(df, imdb_key, n=5)
+    if similar_ml.empty:
+        st.info(t("no_similar_movies"))
+    else:
+        render_movie_row(
+            similar_ml.head(5),
+            key=f"film_similar_ml_{imdb_key}",
+            max_items=5,
+            source_page=back_page,
+            target_page=None,
+        )
 
     if pd.notna(genre) and str(genre).strip():
         st.markdown("---")

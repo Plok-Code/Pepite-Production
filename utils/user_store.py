@@ -42,6 +42,10 @@ def _ensure_user_store():
             "salt": salt_b64,
             "password_hash": digest_b64,
             "favorites": [],
+            "date_of_birth": None,
+            "gender": None,
+            "in_creuse": None,
+            "cinema_last_12m": None,
         }
 
     USERS_PATH.write_text(json.dumps(users, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -71,4 +75,3 @@ def set_password(user: dict, new_password: str) -> None:
     salt_b64, digest_b64 = _hash_password(new_password)
     user["salt"] = salt_b64
     user["password_hash"] = digest_b64
-

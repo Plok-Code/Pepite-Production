@@ -21,6 +21,7 @@ from utils.app_config import get_secret_key
 
 # Secret key for signing tokens
 SECRET_KEY = get_secret_key()
+_UNSET = object()
 
 
 def generate_session_token(email: str) -> str:
@@ -84,6 +85,10 @@ def init_auth_state():
                         "pseudo") or email_from_token.split("@")[0]
                     st.session_state.favorites = set(
                         map(str, user.get("favorites", [])))
+                    st.session_state.date_of_birth = user.get("date_of_birth")
+                    st.session_state.gender = user.get("gender")
+                    st.session_state.in_creuse = user.get("in_creuse")
+                    st.session_state.cinema_last_12m = user.get("cinema_last_12m")
                     st.session_state.flash_message = f"Bon retour, {st.session_state.pseudo} !"
                     return
             except Exception:
@@ -95,6 +100,10 @@ def init_auth_state():
         st.session_state.role = "visitor"
         st.session_state.pseudo = None
         st.session_state.favorites = set()
+        st.session_state.date_of_birth = None
+        st.session_state.gender = None
+        st.session_state.in_creuse = None
+        st.session_state.cinema_last_12m = None
         st.session_state.flash_message = None
 
     # If already authenticated (or just auto-logged in), ensure token is in URL
@@ -144,6 +153,10 @@ def login_dialog():
                     "pseudo") or email_clean.split("@")[0]
                 st.session_state.favorites = set(
                     map(str, user.get("favorites", [])))
+                st.session_state.date_of_birth = user.get("date_of_birth")
+                st.session_state.gender = user.get("gender")
+                st.session_state.in_creuse = user.get("in_creuse")
+                st.session_state.cinema_last_12m = user.get("cinema_last_12m")
                 st.success(t("logged_in_as", email_clean))
                 token = generate_session_token(email_clean)
                 st.query_params["auth_token"] = token
@@ -159,13 +172,55 @@ def login_dialog():
         confirm = st.text_input(
             t("password_confirm"), type="password", key="wf_modal_signup_password_confirm"
         )
+
+        date_of_birth = st.date_input(
+            t("dob_label"),
+            value=None,
+            format="YYYY-MM-DD",
+            key="wf_modal_signup_dob",
+        )
+        gender = st.selectbox(
+            t("gender_label"),
+            options=["male", "female", "other"],
+            format_func=lambda v: t(f"gender_{v}"),
+            index=None,
+            placeholder=t("optional_placeholder"),
+            key="wf_modal_signup_gender",
+        )
+        in_creuse = st.selectbox(
+            t("in_creuse_label"),
+            options=[True, False],
+            format_func=lambda v: t("yes") if v else t("no"),
+            index=None,
+            placeholder=t("optional_placeholder"),
+            key="wf_modal_signup_in_creuse",
+        )
+        cinema_last_12m = st.selectbox(
+            t("cinema_12m_label"),
+            options=[True, False],
+            format_func=lambda v: t("yes") if v else t("no"),
+            index=None,
+            placeholder=t("optional_placeholder"),
+            key="wf_modal_signup_cinema_12m",
+        )
+
         if st.button(t("signup_submit"), key="wf_modal_signup_submit", type="primary", use_container_width=True):
             if password != confirm:
                 st.error(t("passwords_mismatch"))
             else:
                 try:
                     ok, msg = create_user(
-                        email=email, pseudo=pseudo, password=password, role="user")
+                        email=email,
+                        pseudo=pseudo,
+                        password=password,
+                        role="user",
+                        date_of_birth=(
+                            date_of_birth.isoformat() if date_of_birth else None
+                        ),
+                        gender=gender,
+                        in_creuse=in_creuse,
+                        cinema_last_12m=cinema_last_12m,
+                    )
                 except Exception as e:
                     st.error(f"Erreur SGBD: {e}")
                     return
@@ -187,6 +242,14 @@ def login_dialog():
                         pseudo or email_clean.split("@")[0])
                     st.session_state.favorites = set(
                         map(str, (user or {}).get("favorites", [])))
+                    st.session_state.date_of_birth = (user or {}).get(
+                        "date_of_birth") or (
+                        date_of_birth.isoformat() if date_of_birth else None
+                    )
+                    st.session_state.gender = (user or {}).get("gender") or gender
+                    st.session_state.in_creuse = (user or {}).get("in_creuse") if user else in_creuse
+                    st.session_state.cinema_last_12m = (user or {}).get(
+                        "cinema_last_12m") if user else cinema_last_12m
                     st.session_state.flash_message = t("account_created")
                     token = generate_session_token(email_clean)
                     st.query_params["auth_token"] = token
@@ -227,6 +290,10 @@ def logout_button():
             st.session_state.role = "visitor"
             st.session_state.pseudo = None
             st.session_state.favorites = set()
+            st.session_state.date_of_birth = None
+            st.session_state.gender = None
+            st.session_state.in_creuse = None
+            st.session_state.cinema_last_12m = None
             st.session_state.auth_mode = None
             if "auth_token" in st.query_params:
                 del st.query_params["auth_token"]
@@ -264,7 +331,14 @@ def toggle_favorite(imdb_key: str) -> bool:
     return True
 
 
-def update_profile(new_email: str | None = None, new_pseudo: str | None = None) -> tuple[bool, str]:
+def update_profile(
+    new_email: str | None = None,
+    new_pseudo: str | None = None,
+    date_of_birth: str | None | object = _UNSET,
+    gender: str | None | object = _UNSET,
+    in_creuse: bool | None | object = _UNSET,
+    cinema_last_12m: bool | None | object = _UNSET,
+) -> tuple[bool, str]:
     if not st.session_state.get("is_authenticated", False):
         return False, "Vous devez etre connecte."
 
@@ -273,11 +347,21 @@ def update_profile(new_email: str | None = None, new_pseudo: str | None = None) 
         return False, "Utilisateur introuvable."
 
     try:
-        ok, msg, next_email = repo_update_profile(
-            current_email=str(current_email),
-            new_email=new_email,
-            new_pseudo=new_pseudo,
-        )
+        updates = {
+            "current_email": str(current_email),
+            "new_email": new_email,
+            "new_pseudo": new_pseudo,
+        }
+        if date_of_birth is not _UNSET:
+            updates["date_of_birth"] = date_of_birth
+        if gender is not _UNSET:
+            updates["gender"] = gender
+        if in_creuse is not _UNSET:
+            updates["in_creuse"] = in_creuse
+        if cinema_last_12m is not _UNSET:
+            updates["cinema_last_12m"] = cinema_last_12m
+
+        ok, msg, next_email = repo_update_profile(**updates)
     except Exception:
         return False, "Mise a jour impossible (MySQL)."
     if not ok:
@@ -292,6 +376,10 @@ def update_profile(new_email: str | None = None, new_pseudo: str | None = None) 
         "pseudo") or next_email.split("@")[0]
     st.session_state.role = (user or {}).get("role") or st.session_state.role
     st.session_state.user_id = (user or {}).get("id")
+    st.session_state.date_of_birth = (user or {}).get("date_of_birth")
+    st.session_state.gender = (user or {}).get("gender")
+    st.session_state.in_creuse = (user or {}).get("in_creuse")
+    st.session_state.cinema_last_12m = (user or {}).get("cinema_last_12m")
     try:
         save_favorites(next_email, set(
             map(str, st.session_state.get("favorites", set()))))

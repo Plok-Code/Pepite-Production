@@ -94,10 +94,32 @@ def ensure_schema() -> None:
                       role VARCHAR(16) NOT NULL DEFAULT 'user',
                       salt VARCHAR(64) NOT NULL,
                       password_hash VARCHAR(128) NOT NULL,
+                      date_of_birth DATE NULL,
+                      gender VARCHAR(16) NULL,
+                      in_creuse TINYINT(1) NULL,
+                      cinema_last_12m TINYINT(1) NULL,
                       created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
                     """
                 )
+
+                # Backward-compatible schema upgrade (no-op if columns already exist)
+                for col_name, col_def in (
+                    ("date_of_birth", "DATE NULL"),
+                    ("gender", "VARCHAR(16) NULL"),
+                    ("in_creuse", "TINYINT(1) NULL"),
+                    ("cinema_last_12m", "TINYINT(1) NULL"),
+                ):
+                    try:
+                        cur.execute("SHOW COLUMNS FROM users LIKE %s", (col_name,))
+                        exists = cur.fetchone() is not None
+                        if not exists:
+                            cur.execute(
+                                f"ALTER TABLE users ADD COLUMN `{col_name}` {col_def}"
+                            )
+                    except Exception:
+                        # Missing permissions or unsupported DDL; keep app running.
+                        pass
                 cur.execute(
                     """
                     CREATE TABLE IF NOT EXISTS favorites (
@@ -121,10 +143,22 @@ def get_user_by_email(email: str) -> dict[str, Any] | None:
     ensure_schema()
     with mysql_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute(
-                "SELECT id,email,pseudo,role,salt,password_hash FROM users WHERE email=%s LIMIT 1",
-                (email,),
-            )
+            try:
+                cur.execute(
+                    """
+                    SELECT id,email,pseudo,role,salt,password_hash,
+                           date_of_birth,gender,in_creuse,cinema_last_12m
+                    FROM users
+                    WHERE email=%s
+                    LIMIT 1
+                    """,
+                    (email,),
+                )
+            except Exception:
+                cur.execute(
+                    "SELECT id,email,pseudo,role,salt,password_hash FROM users WHERE email=%s LIMIT 1",
+                    (email,),
+                )
             row = cur.fetchone()
         conn.commit()
     return row
@@ -140,15 +174,46 @@ def get_favorites(user_id: int) -> set[str]:
     return {str(r["imdb_key"]) for r in rows if r.get("imdb_key")}
 
 
-def create_user(email: str, pseudo: str, role: str, salt: str, password_hash: str) -> tuple[bool, str]:
+def create_user(
+    email: str,
+    pseudo: str,
+    role: str,
+    salt: str,
+    password_hash: str,
+    date_of_birth: str | None = None,
+    gender: str | None = None,
+    in_creuse: bool | None = None,
+    cinema_last_12m: bool | None = None,
+) -> tuple[bool, str]:
     ensure_schema()
     try:
         with mysql_conn() as conn:
             with conn.cursor() as cur:
-                cur.execute(
-                    "INSERT INTO users (email,pseudo,role,salt,password_hash) VALUES (%s,%s,%s,%s,%s)",
-                    (email, pseudo, role, salt, password_hash),
-                )
+                try:
+                    cur.execute(
+                        """
+                        INSERT INTO users (
+                          email,pseudo,role,salt,password_hash,
+                          date_of_birth,gender,in_creuse,cinema_last_12m
+                        ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                        """,
+                        (
+                            email,
+                            pseudo,
+                            role,
+                            salt,
+                            password_hash,
+                            date_of_birth,
+                            gender,
+                            (None if in_creuse is None else int(bool(in_creuse))),
+                            (None if cinema_last_12m is None else int(bool(cinema_last_12m))),
+                        ),
+                    )
+                except Exception:
+                    cur.execute(
+                        "INSERT INTO users (email,pseudo,role,salt,password_hash) VALUES (%s,%s,%s,%s,%s)",
+                        (email, pseudo, role, salt, password_hash),
+                    )
             conn.commit()
         return True, "Compte cree."
     except Exception as exc:  # pragma: no cover
@@ -192,6 +257,50 @@ def update_password(user_id: int, salt: str, password_hash: str) -> tuple[bool, 
             )
         conn.commit()
     return True, "Mot de passe mis a jour."
+
+
+_UNSET = object()
+
+
+def update_optional_fields(
+    user_id: int,
+    date_of_birth: str | None | object = _UNSET,
+    gender: str | None | object = _UNSET,
+    in_creuse: bool | None | object = _UNSET,
+    cinema_last_12m: bool | None | object = _UNSET,
+) -> tuple[bool, str]:
+    ensure_schema()
+
+    fields: list[str] = []
+    params: list[object] = []
+
+    if date_of_birth is not _UNSET:
+        fields.append("date_of_birth=%s")
+        params.append(date_of_birth)
+    if gender is not _UNSET:
+        fields.append("gender=%s")
+        params.append(gender)
+    if in_creuse is not _UNSET:
+        fields.append("in_creuse=%s")
+        params.append(None if in_creuse is None else int(bool(in_creuse)))
+    if cinema_last_12m is not _UNSET:
+        fields.append("cinema_last_12m=%s")
+        params.append(None if cinema_last_12m is None else int(bool(cinema_last_12m)))
+
+    if not fields:
+        return True, "Profil mis a jour."
+
+    sql = f"UPDATE users SET {', '.join(fields)} WHERE id=%s"
+    params.append(int(user_id))
+
+    try:
+        with mysql_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(sql, tuple(params))
+            conn.commit()
+        return True, "Profil mis a jour."
+    except Exception:  # pragma: no cover
+        return False, "Impossible de mettre a jour le profil (MySQL)."
 
 
 def set_favorites(user_id: int, favorites: set[str]) -> None:

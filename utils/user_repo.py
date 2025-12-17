@@ -10,6 +10,7 @@ from utils.mysql_store import (
     is_mysql_ready,
     set_favorites as mysql_set_favorites,
     update_email as mysql_update_email,
+    update_optional_fields as mysql_update_optional_fields,
     update_password as mysql_update_password,
     update_pseudo as mysql_update_pseudo,
 )
@@ -17,6 +18,7 @@ from utils.user_store import load_users, save_users, set_password, verify_passwo
 
 
 _MYSQL_AVAILABLE: bool | None = None
+_UNSET = object()
 
 
 def _is_mysql_available() -> bool:
@@ -51,6 +53,24 @@ def get_user(email: str) -> dict[str, Any] | None:
         if not user:
             return None
         favorites = mysql_get_favorites(int(user["id"]))
+        date_of_birth_raw = user.get("date_of_birth")
+        if date_of_birth_raw is None:
+            date_of_birth = None
+        else:
+            date_of_birth = str(date_of_birth_raw)
+
+        in_creuse_raw = user.get("in_creuse")
+        if in_creuse_raw is None:
+            in_creuse = None
+        else:
+            in_creuse = bool(int(in_creuse_raw))
+
+        cinema_last_12m_raw = user.get("cinema_last_12m")
+        if cinema_last_12m_raw is None:
+            cinema_last_12m = None
+        else:
+            cinema_last_12m = bool(int(cinema_last_12m_raw))
+
         return {
             "id": int(user["id"]),
             "email": str(user["email"]),
@@ -59,6 +79,10 @@ def get_user(email: str) -> dict[str, Any] | None:
             "salt": str(user.get("salt") or ""),
             "password_hash": str(user.get("password_hash") or ""),
             "favorites": sorted(favorites),
+            "date_of_birth": date_of_birth,
+            "gender": (str(user.get("gender")) if user.get("gender") is not None else None),
+            "in_creuse": in_creuse,
+            "cinema_last_12m": cinema_last_12m,
         }
 
     users = load_users()
@@ -73,6 +97,10 @@ def get_user(email: str) -> dict[str, Any] | None:
         "salt": u.get("salt") or "",
         "password_hash": u.get("password_hash") or "",
         "favorites": list(u.get("favorites", [])),
+        "date_of_birth": u.get("date_of_birth"),
+        "gender": u.get("gender"),
+        "in_creuse": u.get("in_creuse"),
+        "cinema_last_12m": u.get("cinema_last_12m"),
     }
 
 
@@ -80,7 +108,16 @@ def verify_user_password(user: dict[str, Any], password: str) -> bool:
     return verify_password(user, password)
 
 
-def create_user(email: str, pseudo: str, password: str, role: str = "user") -> tuple[bool, str]:
+def create_user(
+    email: str,
+    pseudo: str,
+    password: str,
+    role: str = "user",
+    date_of_birth: str | None = None,
+    gender: str | None = None,
+    in_creuse: bool | None = None,
+    cinema_last_12m: bool | None = None,
+) -> tuple[bool, str]:
     email = str(email).strip().lower()
     pseudo = str(pseudo).strip() or email.split("@")[0]
     password = str(password)
@@ -100,13 +137,25 @@ def create_user(email: str, pseudo: str, password: str, role: str = "user") -> t
             role=role,
             salt=str(user_tmp["salt"]),
             password_hash=str(user_tmp["password_hash"]),
+            date_of_birth=date_of_birth,
+            gender=gender,
+            in_creuse=in_creuse,
+            cinema_last_12m=cinema_last_12m,
         )
 
     users = load_users()
     if email in users:
         return False, "Cet email est deja utilise."
 
-    user = {"role": role, "pseudo": pseudo, "favorites": []}
+    user = {
+        "role": role,
+        "pseudo": pseudo,
+        "favorites": [],
+        "date_of_birth": date_of_birth,
+        "gender": gender,
+        "in_creuse": in_creuse,
+        "cinema_last_12m": cinema_last_12m,
+    }
     set_password(user, password)
     users[email] = user
     save_users(users)
@@ -134,7 +183,13 @@ def save_favorites(email: str, favorites: set[str]) -> None:
 
 
 def update_profile(
-    current_email: str, new_email: str | None = None, new_pseudo: str | None = None
+    current_email: str,
+    new_email: str | None = None,
+    new_pseudo: str | None = None,
+    date_of_birth: str | None | object = _UNSET,
+    gender: str | None | object = _UNSET,
+    in_creuse: bool | None | object = _UNSET,
+    cinema_last_12m: bool | None | object = _UNSET,
 ) -> tuple[bool, str, str]:
     current_email = str(current_email).strip().lower()
     if not current_email:
@@ -163,6 +218,21 @@ def update_profile(
             if pseudo:
                 mysql_update_pseudo(user_id, pseudo)
 
+        extra_updates: dict[str, Any] = {}
+        if date_of_birth is not _UNSET:
+            extra_updates["date_of_birth"] = date_of_birth
+        if gender is not _UNSET:
+            extra_updates["gender"] = gender
+        if in_creuse is not _UNSET:
+            extra_updates["in_creuse"] = in_creuse
+        if cinema_last_12m is not _UNSET:
+            extra_updates["cinema_last_12m"] = cinema_last_12m
+
+        if extra_updates:
+            ok, msg = mysql_update_optional_fields(user_id, **extra_updates)
+            if not ok:
+                return False, msg, next_email
+
         return True, "Profil mis a jour.", next_email
 
     users = load_users()
@@ -180,6 +250,15 @@ def update_profile(
         pseudo = str(new_pseudo).strip()
         if pseudo:
             user["pseudo"] = pseudo
+
+    if date_of_birth is not _UNSET:
+        user["date_of_birth"] = date_of_birth
+    if gender is not _UNSET:
+        user["gender"] = gender
+    if in_creuse is not _UNSET:
+        user["in_creuse"] = in_creuse
+    if cinema_last_12m is not _UNSET:
+        user["cinema_last_12m"] = cinema_last_12m
 
     save_users(users)
     return True, "Profil mis a jour.", next_email

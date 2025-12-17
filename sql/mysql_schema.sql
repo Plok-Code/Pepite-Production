@@ -9,6 +9,10 @@ CREATE TABLE IF NOT EXISTS users (
   role VARCHAR(16) NOT NULL DEFAULT 'user',
   salt VARCHAR(64) NOT NULL,
   password_hash VARCHAR(128) NOT NULL,
+  date_of_birth DATE NULL,
+  gender VARCHAR(16) NULL,
+  in_creuse TINYINT(1) NULL,
+  cinema_last_12m TINYINT(1) NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -19,4 +23,3 @@ CREATE TABLE IF NOT EXISTS favorites (
   PRIMARY KEY (user_id, imdb_key),
   CONSTRAINT fk_fav_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
