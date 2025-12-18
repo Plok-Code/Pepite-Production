@@ -5,7 +5,9 @@ TRANSLATIONS = {
     "fr": {
         # General
         "app_title": "Pepite Production",
-        "home_intro": "Découvrez des films, ajoutez vos favoris et obtenez des recommandations personnalisées - site réalisé dans le cadre d'un projet scolaire.",
+        "home_hero_title": "Pepite Production - Votre site de recommandation personnalisée de films",
+        "home_school_note": "Site réalisé dans le cadre d'un projet scolaire.",
+        "home_intro": "Découvrez des films, ajoutez vos favoris et obtenez des recommandations personnalisées.",
         "home_title": "Accueil",
         "genre_title": "Par genre",
         "library_title": "Ma bibliothèque",
@@ -13,7 +15,7 @@ TRANSLATIONS = {
         "recos_title": "Recommandations",
         "settings_title": "Paramètres",
         "profile_title": "Mon profil",
-        "cinemas_title": "Nos salles de cinéma",
+        "cinemas_title": "Informations",
         "admin_title": "Admin",
         "search_submit": "Rechercher",
         "search_page_title": "Recherche",
@@ -147,7 +149,9 @@ TRANSLATIONS = {
     "en": {
         # General
         "app_title": "Pepite Production",
-        "home_intro": "Discover movies, add favorites, and get personalized recommendations - a site created as part of a school project.",
+        "home_hero_title": "Pepite Production - Your personalized movie recommendation site",
+        "home_school_note": "Built as part of a school project.",
+        "home_intro": "Discover movies, add favorites, and get personalized recommendations.",
         "home_title": "Home",
         "genre_title": "By Genre",
         "library_title": "My Library",
@@ -155,7 +159,7 @@ TRANSLATIONS = {
         "recos_title": "Recommendations",
         "settings_title": "Settings",
         "profile_title": "My Profile",
-        "cinemas_title": "Our cinemas",
+        "cinemas_title": "Information",
         "admin_title": "Admin",
         "search_submit": "Search",
         "search_page_title": "Search",

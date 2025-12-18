@@ -22,6 +22,8 @@ def main():
     df = load_movies()
     render_global_search(df, source_page="Home.py")
 
+    st.markdown(f"## {t('home_hero_title')}")
+    st.caption(t("home_school_note"))
     st.caption(t("home_intro"))
 
     # Logic to fetch movies
