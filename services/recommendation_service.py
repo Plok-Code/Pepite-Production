@@ -178,7 +178,21 @@ def get_recommendations_from_favorites(df: pd.DataFrame, favorites: set[str], n:
                 out = out[~out["imdb_key"].astype(str).isin(set(map(str, favorites)))].copy()
                 if "imdb_key" in out.columns:
                     out = out.drop_duplicates(subset=["imdb_key"], keep="first")
-                return out.head(int(n))
+                    indices_retenus = []
+                    premiers_mots = []
+                    for row in out.itertuples():
+                        titre = row.movie_title
+                        mots = str(titre).split()
+                        if not mots:
+                            continue
+                        premier_mot = mots[0]
+                        if premier_mot not in premiers_mots:
+                            indices_retenus.append(row.Index)
+                            premiers_mots.append(premier_mot)
+                        if len(indices_retenus) == int(n):
+                            break
+                return out.loc[indices_retenus]
+                #return out.head(int(n))
 
     return _recommend_with_cosine_keywords(df, favorites, n=int(n))
 
