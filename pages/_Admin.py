@@ -140,39 +140,42 @@ def main():
     with tab_py:
         section_title(t("admin_python_tab"))
 
-        if filtered_favs.empty:
-            st.info(t("admin_no_likes"))
+        from utils.python_kpis import build_kpi_figure
+
+        movies = movies_df.copy()
+        if "imdb_key" in movies.columns:
+            movies["imdb_key"] = movies["imdb_key"].astype(str)
+
+        st.subheader("KPIs (Python)")
+
+        kpi_options = ["kpi_prefs", "kpi_1", "kpi_3", "kpi_4", "kpi_5", "kpi_6"]
+        current_kpi = st.session_state.get("wf_admin_python_kpi")
+        if current_kpi not in kpi_options:
+            st.session_state["wf_admin_python_kpi"] = kpi_options[0]
+
+        kpi_id = st.selectbox(
+            "KPI",
+            options=kpi_options,
+            format_func=lambda v: {
+                "kpi_prefs": "Préférences utilisateurs du site",
+                "kpi_1": "Réalisateurs",
+                "kpi_3": "Acteurs",
+                "kpi_4": "Genres & décennie",
+                "kpi_5": "Durée",
+                "kpi_6": "Classification âge",
+            }.get(v, str(v)),
+            key="wf_admin_python_kpi",
+        )
+
+        if kpi_id == "kpi_prefs":
+            if filtered_favs.empty:
+                st.info(t("admin_no_likes"))
+            else:
+                merged = filtered_favs.merge(movies, on="imdb_key", how="left").dropna(subset=["movie_title"])
+                fig = build_kpi_figure(kpi_id, merged)
+                st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
         else:
-            from utils.python_kpis import build_kpi_figure
-
-            movies = movies_df.copy()
-            if "imdb_key" in movies.columns:
-                movies["imdb_key"] = movies["imdb_key"].astype(str)
-
-            merged = filtered_favs.merge(
-                movies, on="imdb_key", how="left").dropna(subset=["movie_title"])
-
-            st.subheader("KPIs (Python)")
-            kpi_options = ["kpi_prefs", "kpi_1", "kpi_3", "kpi_4", "kpi_5", "kpi_6"]
-            current_kpi = st.session_state.get("wf_admin_python_kpi")
-            if current_kpi not in kpi_options:
-                st.session_state["wf_admin_python_kpi"] = kpi_options[0]
-
-            kpi_id = st.selectbox(
-                "KPI",
-                options=kpi_options,
-                format_func=lambda v: {
-                    "kpi_prefs": "Préférence User du site",
-                    "kpi_1": "Réalisateurs",
-                    "kpi_3": "Acteurs",
-                    "kpi_4": "Genres & décennie",
-                    "kpi_5": "Durée",
-                    "kpi_6": "Classification âge",
-                }.get(v, str(v)),
-                key="wf_admin_python_kpi",
-            )
-
-            fig = build_kpi_figure(kpi_id, merged)
+            fig = build_kpi_figure(kpi_id, movies)
             st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
     with tab_bi:
