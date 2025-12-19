@@ -1,82 +1,7 @@
 import pandas as pd
 import streamlit as st
-from textwrap import dedent
 from utils.i18n import t
-
-
-def movie_card(row: pd.Series, show_add_fav: bool = False):
-    col1, col2 = st.columns([1, 3])
-    with col1:
-        if pd.notna(row.get("Poster", None)):
-            st.image(row["Poster"], width=200)
-        else:
-            st.write("Pas d'affiche")
-    with col2:
-        title_year = int(row["title_year"]) if not pd.isna(
-            row["title_year"]) else "N/A"
-        st.markdown(f"### {row['movie_title']} ({title_year})")
-        st.write(f"Genre principal : {row.get('genre_main', 'N/A')}")
-        st.write(f"Score global : {row.get('score_global', 'N/A')}")
-        st.write(f"IMDb : {row.get('imdb_score', 'N/A')}")
-        st.write(f"Popularite : {row.get('popularity', 'N/A')}")
-        if show_add_fav:
-            if st.button("Ajouter aux favoris", key=f"fav_{row['imdb_key']}"):
-                st.session_state.favorites.add(row["imdb_key"])
-                st.success("Ajoute aux favoris")
-
-            # Helper to check if liked for coloring (though movie_card button is simple)
-            is_fav = row["imdb_key"] in st.session_state.get(
-                "favorites", set())
-            if is_fav:
-                st.markdown(
-                    f"""<style>
-                    [class*="st-key-fav_{row['imdb_key']}"] {{
-                        border-color: transparent !important;
-                    }}
-                    [class*="st-key-fav_{row['imdb_key']}"] p,
-                    [class*="st-key-fav_{row['imdb_key']}"] span {{
-                        color: #FF3B3B !important;
-                    }}
-                    </style>""",
-                    unsafe_allow_html=True,
-                )
-
-
-def movie_tile(row: pd.Series, show_add_fav: bool = False, key_prefix: str = ""):
-    title = row.get("movie_title", "N/A")
-    genre = row.get("genre_main", "N/A")
-    note = row.get("score_global", None)
-    director = row.get("director_name", "N/A")
-    duration = row.get("duration", None)
-
-    actors = [row.get("actor_1_name"), row.get(
-        "actor_2_name"), row.get("actor_3_name")]
-    actors = [a for a in actors if pd.notna(a) and str(a).strip()]
-
-    st.markdown(f"**{title}**")
-    st.write(f"Genre principal : {genre}" if pd.notna(
-        genre) else "Genre principal : N/A")
-
-    if pd.notna(note):
-        st.write(f"Note : {float(note):.2f}")
-    else:
-        st.write("Note : N/A")
-
-    st.write(f"Realisateur : {director}" if pd.notna(
-        director) else "Realisateur : N/A")
-    st.write(
-        f"Acteurs : {', '.join(map(str, actors))}" if actors else "Acteurs : N/A")
-
-    if pd.notna(duration):
-        st.write(f"Duree : {int(duration)} min")
-    else:
-        st.write("Duree : N/A")
-
-    if show_add_fav and pd.notna(row.get("imdb_key")):
-        imdb_key = row["imdb_key"]
-        if st.button("Ajouter aux favoris", key=f"{key_prefix}fav_{imdb_key}"):
-            st.session_state.favorites.add(imdb_key)
-            st.success("Ajoute aux favoris")
+from textwrap import dedent
 
 
 def inject_wildflix_styles():
@@ -98,8 +23,6 @@ def render_movie_row(
     source_page: str | None = None,
     target_page: str | None = "pages/_Film.py",
 ):
-    from utils.auth import toggle_favorite
-
     from utils.auth import toggle_favorite
 
     # inject_wildflix_styles()  <-- REMOVED: Now called by pages directly to avoid duplication
@@ -187,8 +110,16 @@ def render_movie_row(
                         if imdb_key:
                             _open_movie()
 
-                    genre = row.get("genre_main", "N/A")
+                    genre = row.get("genre_main_display", row.get("genre_main", "N/A"))
                     note = _format_note(row.get("score_global", None))
+
+                    likes_val = row.get("likes")
+                    likes = None
+                    try:
+                        if pd.notna(likes_val):
+                            likes = int(likes_val)
+                    except Exception:
+                        likes = None
                     director_val = row.get("director_name")
                     director = str(director_val) if pd.notna(
                         director_val) else "N/A"
@@ -196,7 +127,7 @@ def render_movie_row(
                     duration = f"{int(duration_val)} min" if pd.notna(
                         duration_val) else "N/A"
 
-                    language_val = row.get("language")
+                    language_val = row.get("language_display", row.get("language"))
                     language = str(language_val) if pd.notna(
                         language_val) and str(language_val).strip() else "N/A"
 
@@ -214,19 +145,26 @@ def render_movie_row(
                     lbl_act = t("actors_label")
                     lbl_lang = t("language_label")
                     lbl_dur = t("duration_label")
+                    lbl_likes = t("likes_label")
                     unit_min = t("minutes")
 
                     # Custom HTML for perfectly aligned metadata grid with Pinned Bottom
-                    meta_html = f"""
-                    <div class="wf-meta-container">
-                        <div class="wf-meta-row">{lbl_genre} {genre}</div>
-                        <div class="wf-meta-row">{lbl_note} {note}</div>
-                        <div class="wf-meta-row wf-meta-text">{lbl_dir} {director}</div>
-                        <div class="wf-meta-row wf-meta-text">{lbl_act} {actors_str}</div>
-                        <div class="wf-meta-row">{lbl_lang} {language}</div>
-                        <div class="wf-meta-row wf-meta-duration">{lbl_dur} {duration}</div>
-                    </div>
-                    """
+                    likes_html = (
+                        f'<div class="wf-meta-row">{lbl_likes} {likes}</div>' if likes is not None else ""
+                    )
+                    meta_html = dedent(
+                        f"""
+                        <div class="wf-meta-container">
+                          {likes_html}
+                          <div class="wf-meta-row">{lbl_genre} {genre}</div>
+                          <div class="wf-meta-row">{lbl_note} {note}</div>
+                          <div class="wf-meta-row wf-meta-text">{lbl_dir} {director}</div>
+                          <div class="wf-meta-row wf-meta-text">{lbl_act} {actors_str}</div>
+                          <div class="wf-meta-row">{lbl_lang} {language}</div>
+                          <div class="wf-meta-row wf-meta-duration">{lbl_dur} {duration}</div>
+                        </div>
+                        """
+                    ).strip()
                     st.markdown(meta_html, unsafe_allow_html=True)
 
 

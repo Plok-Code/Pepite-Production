@@ -1,5 +1,6 @@
 import pandas as pd
 import streamlit as st
+import random
 
 from services.recommendation_service import get_similar_movies
 from utils.auth import toggle_favorite
@@ -8,6 +9,7 @@ from utils.header import render_global_search
 from utils.ui_components import render_movie_row
 from utils.i18n import t
 from utils.layout import common_page_setup
+from utils.movie_categories import categorize_movies
 
 
 def _get_selected_imdb_key() -> str | None:
@@ -234,7 +236,7 @@ def main():
             st.caption(t("auth_required_favs"))
 
         # Meta Data
-        genre = row.get("genre_main", None)
+        genre = row.get("genre_main_display", row.get("genre_main", None))
         note = _format_note(row.get("score_global", None))
         director = row.get("director_name", None)
         duration = row.get("duration", None)
@@ -263,16 +265,14 @@ def main():
 
         year = row.get("title_year", None)
         rating = row.get("content_rating", None)
-        country = row.get("country_main", None) or row.get(
-            "country_name", None)
-        language = row.get("language", None)
+        country = row.get("country_display", row.get("country_main", None) or row.get("country_name", None))
+        language = row.get("language_display", row.get("language", None))
 
         st.write(f"Annee : {int(year)}" if pd.notna(year) else "Annee : N/A")
         st.write(f"Classification : {rating}" if pd.notna(
             rating) else "Classification : N/A")
         st.write(f"Pays : {country}" if pd.notna(country) else "Pays : N/A")
-        st.write(f"Langue : {language}" if pd.notna(
-            language) else "Langue : N/A")
+        st.write(f"Langue : {language}" if pd.notna(language) else "Langue : N/A")
 
         imdb_link = row.get("movie_imdb_link", None)
         if pd.notna(imdb_link) and str(imdb_link).strip():
@@ -280,7 +280,7 @@ def main():
 
     st.markdown("---")
     st.subheader("Synopsis")
-    plot = row.get("Plot", None)
+    plot = row.get("Plot_display", row.get("Plot", None))
     if pd.notna(plot) and str(plot).strip():
         st.write(str(plot))
     else:
@@ -302,16 +302,54 @@ def main():
 
     if pd.notna(genre) and str(genre).strip():
         st.markdown("---")
-        st.subheader("Plus dans ce genre")
-        similar = df[(df["genre_main"] == genre) & (
-            df["imdb_key"].astype(str) != imdb_key)].copy()
-        sort_cols = [c for c in ["score_global", "popularity",
-                                 "num_voted_users"] if c in similar.columns]
-        if sort_cols:
-            similar = similar.sort_values(
-                sort_cols, ascending=[False] * len(sort_cols))
+        st.subheader(t("more_in_genre"))
+
+        categorized, rating_col, count_col = categorize_movies(df, min_votes=5)
+        similar = categorized[(categorized["genre_main"] == genre) & (
+            categorized["imdb_key"].astype(str) != imdb_key)].copy()
+
+        seed_key = f"wf_more_in_genre_seed_{imdb_key}"
+        if seed_key not in st.session_state:
+            st.session_state[seed_key] = random.randint(0, 2_147_483_647)
+        seed = int(st.session_state[seed_key])
+
+        strict = similar[similar["category"].isin(["Blockbuster", "Pépite"])].copy()
+        if "imdb_key" in strict.columns:
+            strict["imdb_key"] = strict["imdb_key"].astype(str)
+            strict = strict.drop_duplicates(subset=["imdb_key"], keep="first")
+        strict = strict.sample(frac=1, random_state=seed).reset_index(drop=True) if not strict.empty else strict
+
+        picks = strict.head(5).copy()
+        used_keys: set[str] = set(picks["imdb_key"].astype(str).tolist()) if "imdb_key" in picks.columns else set()
+        need = 5 - int(len(picks))
+
+        if need > 0 and rating_col and count_col and "vote_decile" in similar.columns:
+            relaxed = similar.copy()
+            if rating_col in relaxed.columns and count_col in relaxed.columns:
+                relaxed[rating_col] = pd.to_numeric(relaxed[rating_col], errors="coerce")
+                relaxed[count_col] = pd.to_numeric(relaxed[count_col], errors="coerce")
+                relaxed = relaxed[
+                    relaxed["vote_decile"].notna()
+                    & relaxed["vote_decile"].between(3, 10)
+                    & (relaxed[rating_col] > 7)
+                ].copy()
+                if "imdb_key" in relaxed.columns:
+                    relaxed["imdb_key"] = relaxed["imdb_key"].astype(str)
+                    relaxed = relaxed.drop_duplicates(subset=["imdb_key"], keep="first")
+                    if used_keys:
+                        relaxed = relaxed[~relaxed["imdb_key"].isin(used_keys)].copy()
+                relaxed = relaxed.sample(frac=1, random_state=seed + 1).reset_index(drop=True) if not relaxed.empty else relaxed
+                filler = relaxed.head(need).copy()
+                if not filler.empty:
+                    picks = pd.concat([picks, filler], ignore_index=True)
+
+        picks = picks.head(5).reset_index(drop=True)
+        if picks.empty:
+            st.info(t("no_similar_movies"))
+            return
+
         render_movie_row(
-            similar.head(5),
+            picks,
             key=f"film_similar_{imdb_key}",
             max_items=5,
             source_page=back_page,

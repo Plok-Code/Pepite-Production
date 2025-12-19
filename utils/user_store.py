@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import json
+import os
 import secrets
 from pathlib import Path
 
@@ -9,10 +10,21 @@ DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 USERS_PATH = DATA_DIR / "users.json"
 
 
-SEED_USERS: dict[str, dict] = {
-    "user@wildflix.com": {"password": "user123", "role": "user", "pseudo": "user"},
-    "admin@wildflix.com": {"password": "admin123", "role": "admin", "pseudo": "admin"},
-}
+_SEED_DEMO_USERS = os.getenv("WILDFLIX_SEED_DEMO_USERS", "").strip().lower() in (
+    "1",
+    "true",
+    "yes",
+    "y",
+)
+
+SEED_USERS: dict[str, dict] = (
+    {
+        "user@wildflix.com": {"password": "user123", "role": "user", "pseudo": "user"},
+        "admin@wildflix.com": {"password": "admin123", "role": "admin", "pseudo": "admin"},
+    }
+    if _SEED_DEMO_USERS
+    else {}
+)
 
 
 def _hash_password(password: str, salt_b64: str | None = None) -> tuple[str, str]:
@@ -36,9 +48,9 @@ def _ensure_user_store():
     users: dict[str, dict] = {}
     for email, info in SEED_USERS.items():
         salt_b64, digest_b64 = _hash_password(str(info["password"]))
-        users[email] = {
+        users[str(email).strip().lower()] = {
             "role": info.get("role", "user"),
-            "pseudo": info.get("pseudo", email.split("@")[0]),
+            "pseudo": info.get("pseudo", str(email).split("@")[0]),
             "salt": salt_b64,
             "password_hash": digest_b64,
             "favorites": [],

@@ -4,6 +4,7 @@ import streamlit as st
 
 from utils.auth import (
     change_password,
+    is_protected_account,
     update_profile,
 )
 from utils.user_repo import get_user
@@ -11,6 +12,7 @@ from utils.data_loader import load_movies
 from utils.header import render_global_search
 from utils.ui_components import section_title
 from utils.i18n import t
+from utils.i18n import get_current_language
 from utils.layout import common_page_setup
 
 
@@ -53,14 +55,19 @@ def main():
             with st.form("wf_profile_form"):
                 current_pseudo = st.session_state.get("pseudo") or ""
                 current_email = st.session_state.get("user_email") or ""
+                protected = is_protected_account(str(current_email)) if current_email else False
 
-                pseudo = st.text_input(t("pseudo_label"), value=current_pseudo)
-                email = st.text_input(t("email_label"), value=current_email)
+                if protected:
+                    st.info(t("protected_account_notice"))
 
+                pseudo = st.text_input(t("pseudo_label"), value=current_pseudo, disabled=protected)
+                email = st.text_input(t("email_label"), value=current_email, disabled=protected)
+
+                dob_format = "DD-MM-YYYY" if get_current_language() == "fr" else "MM-DD-YYYY"
                 date_of_birth = st.date_input(
                     t("dob_label"),
                     value=dob_default,
-                    format="YYYY-MM-DD",
+                    format=dob_format,
                     key="wf_profile_dob",
                 )
 
@@ -118,7 +125,7 @@ def main():
                 cinema_last_12m = None if cinema_choice == "" else cinema_choice == "yes"
 
                 submitted = st.form_submit_button(
-                    t("save_button"), type="primary")
+                    t("save_button"), type="primary", key="wf_profile_save", disabled=protected)
                 if submitted:
                     ok, message = update_profile(
                         new_email=email,
@@ -137,16 +144,20 @@ def main():
     with tab_security:
         with st.container(border=True):
             section_title(t("profile_security_section"), t("profile_security_desc"))
+            current_email = st.session_state.get("user_email") or ""
+            protected = is_protected_account(str(current_email)) if current_email else False
+            if protected:
+                st.info(t("protected_account_notice"))
             with st.form("wf_password_form"):
                 current_password = st.text_input(
-                    t("current_password"), type="password")
+                    t("current_password"), type="password", disabled=protected)
                 new_password = st.text_input(
-                    t("new_password"), type="password")
+                    t("new_password"), type="password", disabled=protected)
                 confirm_password = st.text_input(
-                    t("confirm_new_password"), type="password")
+                    t("confirm_new_password"), type="password", disabled=protected)
 
                 submitted = st.form_submit_button(
-                    t("update_button"), type="secondary")
+                    t("update_button"), type="primary", key="wf_profile_password_update", disabled=protected)
                 if submitted:
                     if new_password != confirm_password:
                         st.error(t("passwords_mismatch"))

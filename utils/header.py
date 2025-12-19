@@ -17,7 +17,8 @@ SEARCH_RESULTS_PAGE = "pages/_Recherche.py"
 
 @st.cache_data(show_spinner=False)
 def _get_brand_logo_data_uri() -> str | None:
-    logo_path = Path(__file__).resolve().parent.parent / "assets" / "logo_pepite_prodseul.png"
+    logo_path = Path(__file__).resolve().parent.parent / \
+        "assets" / "logo_pepite_prodseul.png"
     if not logo_path.exists():
         return None
 
@@ -52,57 +53,26 @@ def render_global_search(
     df: pd.DataFrame, source_page: str, target_page: str | None = "pages/_Film.py"
 ) -> None:
     # NOTE: `df` and `target_page` kept for backward compatibility.
-    with st.container():
-        c1, c2, c3 = st.columns([2.2, 6, 1.2], vertical_alignment="center")
-
-        with c1:
-            logo_uri = _get_brand_logo_data_uri()
-            if logo_uri:
-                st.markdown(
-                    f"""
-                    <style>
-                    [class*="st-key-wf_brand_home_logo"] button{{
-                      background-image: url("{logo_uri}") !important;
-                      background-size: contain !important;
-                      background-repeat: no-repeat !important;
-                      background-position: center !important;
-                      background-color: transparent !important;
-                      border: 0 !important;
-                      padding: 0 !important;
-                      height: 72px !important;
-                      min-height: 72px !important;
-                    }}
-                    [class*="st-key-wf_brand_home_logo"] button > div{{ opacity: 0 !important; }}
-                    </style>
-                    """,
-                    unsafe_allow_html=True,
+    with st.container(key="wf_global_header"):
+        with st.form("global_search_form", border=False):
+            # Search only (no logo) to avoid layout issues across browsers.
+            # Centering the search bar with empty columns on sides
+            _, c1, c2, _ = st.columns(
+                [2, 5, 1, 2], vertical_alignment="center")
+            with c1:
+                st.text_input(
+                    t("search_placeholder"),
+                    key="wf_global_search_query",
+                    label_visibility="collapsed",
+                    placeholder=t("search_placeholder"),
                 )
-                if st.button(
-                    "Home",
-                    key="wf_brand_home_logo",
-                    type="secondary",
+
+            with c2:
+                submitted = st.form_submit_button(
+                    t("search_submit"),
                     use_container_width=True,
-                ):
-                    st.switch_page("Home.py")
-            else:
-                if st.button(t("app_title"), key="wf_brand_home", type="secondary"):
-                    st.switch_page("Home.py")
+                    type="secondary",
+                )
 
-        with c2:
-            st.text_input(
-                t("search_placeholder"),
-                key="wf_global_search_query",
-                label_visibility="collapsed",
-                placeholder=t("search_placeholder"),
-                on_change=_submit_global_search,
-                args=(source_page,),
-            )
-
-        with c3:
-            if st.button(
-                t("search_submit"),
-                key="wf_global_search_submit",
-                use_container_width=True,
-                type="secondary",
-            ):
+            if submitted:
                 _submit_global_search(source_page)

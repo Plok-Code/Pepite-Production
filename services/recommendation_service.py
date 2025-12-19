@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import re
 from collections import Counter
 from functools import lru_cache
 from pathlib import Path
@@ -13,6 +14,236 @@ from utils.text import normalize_text
 
 
 _KNN_MODELS_DIR = Path(__file__).resolve().parent.parent / "ml"
+_MAX_PER_FRANCHISE_DEFAULT = 2
+
+_TITLE_STOPWORDS = {
+    # Articles / determiners
+    "the",
+    "a",
+    "an",
+    "le",
+    "la",
+    "les",
+    "un",
+    "une",
+    "des",
+    "du",
+    "de",
+    "d",
+    "l",
+    # Conjunctions / prepositions (common in titles)
+    "and",
+    "or",
+    "of",
+    "to",
+    "in",
+    "on",
+    "at",
+    "for",
+    "with",
+    "from",
+    "by",
+    "into",
+    "over",
+    "under",
+    "between",
+    "vs",
+    "versus",
+    "et",
+    "ou",
+    "en",
+    "au",
+    "aux",
+    "sur",
+    "dans",
+    "par",
+    "pour",
+    "avec",
+    "sans",
+    "chez",
+}
+
+_ROMAN_NUMERALS = {
+    "ii",
+    "iii",
+    "iv",
+    "vi",
+    "vii",
+    "viii",
+    "ix",
+    "xi",
+    "xii",
+    "xiii",
+    "xiv",
+    "xv",
+    "xvi",
+    "xvii",
+    "xviii",
+    "xix",
+    "xx",
+}
+
+_SEQUEL_WORDS = {
+    "part",
+    "episode",
+    "chapter",
+    "volume",
+    "vol",
+    "season",
+    "saison",
+    "partie",
+    "chapitre",
+}
+
+_SEQUEL_PREFIX_RE = re.compile(
+    r"^(?:part|episode|chapter|season|saison|volume|vol|partie|chapitre)[0-9]+$"
+)
+_ORDINAL_RE = re.compile(r"^[0-9]+(?:st|nd|rd|th)$")
+
+_FIRST_CORE_TOKEN_COUNTS: dict[str, int] | None = None
+_FIRST_CORE_TOKEN_COUNTS_N: int | None = None
+_SAFE_SINGLE_TOKEN_MAX_FREQ = 12
+
+
+def _is_sequel_marker(token: str) -> bool:
+    tok = (token or "").strip().lower()
+    if not tok:
+        return False
+    if tok.isdigit():
+        return True
+    if tok in _ROMAN_NUMERALS:
+        return True
+    if tok in _SEQUEL_WORDS:
+        return True
+    if _SEQUEL_PREFIX_RE.match(tok) is not None:
+        return True
+    if _ORDINAL_RE.match(tok) is not None:
+        return True
+    return False
+
+
+def _strip_sequel_suffix(tokens: list[str]) -> list[str]:
+    if not tokens:
+        return []
+    out = list(tokens)
+    while out and _is_sequel_marker(out[-1]):
+        out.pop()
+    return out or list(tokens)
+
+
+def _title_norm_series(df: pd.DataFrame) -> pd.Series:
+    if "title_search" in df.columns:
+        return df["title_search"].fillna("").astype(str)
+    if "movie_title_clean" in df.columns:
+        return df["movie_title_clean"].fillna("").astype(str).map(normalize_text)
+    if "movie_title" in df.columns:
+        return df["movie_title"].fillna("").astype(str).map(normalize_text)
+    return pd.Series([""] * len(df), index=df.index)
+
+
+def _core_title_tokens(tokens: list[str]) -> list[str]:
+    cleaned = [t for t in tokens if t and t not in _TITLE_STOPWORDS]
+    core = [t for t in cleaned if not _is_sequel_marker(t)]
+    return core or cleaned
+
+
+def _first_core_token_counts(df: pd.DataFrame) -> dict[str, int]:
+    global _FIRST_CORE_TOKEN_COUNTS, _FIRST_CORE_TOKEN_COUNTS_N
+
+    n = int(len(df))
+    if _FIRST_CORE_TOKEN_COUNTS is not None and _FIRST_CORE_TOKEN_COUNTS_N == n:
+        return _FIRST_CORE_TOKEN_COUNTS
+
+    title_norm = _title_norm_series(df)
+    first_tokens: list[str] = []
+    for raw in title_norm.tolist():
+        tokens = str(raw).split()
+        core = _core_title_tokens(tokens)
+        first_tokens.append(core[0] if core else "")
+
+    counts = Counter(t for t in first_tokens if t)
+    _FIRST_CORE_TOKEN_COUNTS = dict(counts)
+    _FIRST_CORE_TOKEN_COUNTS_N = n
+    return _FIRST_CORE_TOKEN_COUNTS
+
+
+def _is_safe_single_token_franchise_key(token: str, full_df: pd.DataFrame | None) -> bool:
+    tok = (token or "").strip().lower()
+    if len(tok) < 4:
+        return False
+    if tok.isdigit():
+        return False
+    if full_df is None or full_df.empty:
+        return True
+    return _first_core_token_counts(full_df).get(tok, 0) <= _SAFE_SINGLE_TOKEN_MAX_FREQ
+
+
+def _compute_franchise_keys(candidates: pd.DataFrame, full_df: pd.DataFrame | None = None) -> pd.Series:
+    title_norm = _title_norm_series(candidates)
+
+    base_keys: list[str] = []
+    key2_list: list[str] = []
+    key1_list: list[str] = []
+    for raw in title_norm.tolist():
+        tokens = str(raw).split()
+        tokens = _strip_sequel_suffix(tokens)
+        core = _core_title_tokens(tokens)
+        base = " ".join(core).strip()
+        key2 = " ".join(core[:2]).strip() if len(core) >= 2 else ""
+        key1 = core[0] if core else ""
+        base_keys.append(base)
+        key2_list.append(key2)
+        key1_list.append(key1)
+
+    key2_counts = Counter(k for k in key2_list if k)
+    key1_counts = Counter(k for k in key1_list if k)
+
+    final_keys: list[str] = []
+    for base, key2, key1 in zip(base_keys, key2_list, key1_list):
+        if key2 and key2_counts.get(key2, 0) >= 2:
+            final_keys.append(key2)
+            continue
+        if (
+            key1
+            and key1_counts.get(key1, 0) >= 2
+            and _is_safe_single_token_franchise_key(key1, full_df)
+        ):
+            final_keys.append(key1)
+            continue
+        final_keys.append(base or key2 or key1 or "")
+
+    return pd.Series(final_keys, index=candidates.index)
+
+
+def _limit_by_franchise(
+    candidates: pd.DataFrame,
+    n: int,
+    max_per_franchise: int = _MAX_PER_FRANCHISE_DEFAULT,
+    full_df: pd.DataFrame | None = None,
+) -> pd.DataFrame:
+    if candidates.empty:
+        return candidates
+
+    n_int = int(n)
+    if n_int <= 0:
+        return candidates.head(0)
+
+    keys = _compute_franchise_keys(candidates, full_df=full_df).tolist()
+    counts: dict[str, int] = {}
+    selected: list[int] = []
+
+    for idx, key in zip(candidates.index.tolist(), keys):
+        bucket = key or f"__{idx}"
+        if counts.get(bucket, 0) >= int(max_per_franchise):
+            continue
+        counts[bucket] = counts.get(bucket, 0) + 1
+        selected.append(int(idx))
+        if len(selected) >= n_int:
+            break
+
+    if not selected:
+        return candidates.head(0)
+    return candidates.loc[selected].copy()
 
 
 def _get_knn_model_path() -> Path:
@@ -135,37 +366,38 @@ def get_recommendations_from_favorites(df: pd.DataFrame, favorites: set[str], n:
     if not favorites or "imdb_key" not in df.columns or df.empty:
         return df.head(0)
 
+    n_int = int(n)
+    pool = min(len(df), max(n_int * 60, 300))
+
     model = _load_knn_model(str(_get_knn_model_path()))
     if model is not None and hasattr(model, "kneighbors") and hasattr(model, "_fit_X"):
         key_to_index = _build_key_to_index(df)
         fav_indices = [key_to_index.get(str(k)) for k in set(map(str, favorites))]
         fav_indices = [i for i in fav_indices if i is not None]
         if fav_indices:
-            k = max(int(n) + 20, 30)
-            k = min(k, len(df))
-
             scores: dict[int, float] = {}
-            for i in fav_indices:
-                try:
-                    distances, indices = model.kneighbors(model._fit_X[int(i)], n_neighbors=k)
-                except Exception:
-                    scores = {}
-                    break
+            k = min(len(df), max(n_int * 25, 120))
+            try:
+                query = model._fit_X[fav_indices]
+                distances, indices = model.kneighbors(query, n_neighbors=k)
+            except Exception:
+                distances = None
+                indices = None
 
-                idxs = list(indices[0])
-                dists = list(distances[0])
-                for j, dist in zip(idxs, dists):
-                    if j in fav_indices:
-                        continue
-                    # For cosine metric, sklearn returns cosine distance in [0,2]. Similarity ~ 1 - distance.
-                    sim = 1.0 - float(dist)
-                    prev = scores.get(int(j))
-                    if prev is None or sim > prev:
-                        scores[int(j)] = sim
+            if distances is not None and indices is not None:
+                fav_set = set(map(int, fav_indices))
+                for row_idxs, row_dists in zip(indices, distances):
+                    for j, dist in zip(list(row_idxs), list(row_dists)):
+                        if int(j) in fav_set:
+                            continue
+                        sim = 1.0 - float(dist)
+                        prev = scores.get(int(j))
+                        if prev is None or sim > prev:
+                            scores[int(j)] = sim
 
             if scores:
                 ranked = sorted(scores.items(), key=lambda kv: kv[1], reverse=True)
-                top_idx = [idx for idx, _ in ranked[: int(n) * 3]]
+                top_idx = [idx for idx, _ in ranked[:pool]]
                 out = df.loc[top_idx].copy()
                 out["wf_reco_score"] = [scores.get(int(i), 0.0) for i in out.index.tolist()]
 
@@ -178,9 +410,20 @@ def get_recommendations_from_favorites(df: pd.DataFrame, favorites: set[str], n:
                 out = out[~out["imdb_key"].astype(str).isin(set(map(str, favorites)))].copy()
                 if "imdb_key" in out.columns:
                     out = out.drop_duplicates(subset=["imdb_key"], keep="first")
-                return out.head(int(n))
+                return _limit_by_franchise(
+                    out,
+                    n=n_int,
+                    max_per_franchise=_MAX_PER_FRANCHISE_DEFAULT,
+                    full_df=df,
+                )
 
-    return _recommend_with_cosine_keywords(df, favorites, n=int(n))
+    fallback = _recommend_with_cosine_keywords(df, favorites, n=int(pool))
+    return _limit_by_franchise(
+        fallback,
+        n=n_int,
+        max_per_franchise=_MAX_PER_FRANCHISE_DEFAULT,
+        full_df=df,
+    )
 
 
 def get_similar_movies(df: pd.DataFrame, imdb_key: str, n: int = 10) -> pd.DataFrame:

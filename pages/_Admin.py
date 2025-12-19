@@ -1,8 +1,6 @@
-import os
-
 import pandas as pd
 import streamlit as st
-from streamlit.errors import StreamlitSecretNotFoundError
+import streamlit.components.v1 as components
 
 from utils.admin_analytics import (
     apply_user_filters,
@@ -17,24 +15,6 @@ from utils.layout import common_page_setup
 from utils.settings import get_recommender_model, set_recommender_model
 from utils.ui_components import render_movie_row, section_title
 from services.recommendation_service import get_recommender_info
-
-
-def _get_powerbi_embed_url() -> str | None:
-    # Hardcoded for testing as requested
-    return "https://app.powerbi.com/reportEmbed?reportId=76c1a151-a7e7-48a8-9210-d53ebec79519&autoAuth=true&ctid=a2e466aa-4f86-4545-b5b8-97da7c8febf3"
-
-    # url = str(os.getenv("POWERBI_EMBED_URL", "")).strip()
-    # if url:
-    #     return url
-
-    # try:
-    #     raw = st.secrets.get("POWERBI_EMBED_URL") or st.secrets.get("powerbi_embed_url")
-    # except StreamlitSecretNotFoundError:
-    #     return None
-
-    # if raw is None:
-    #     return None
-    # return str(raw).strip() or None
 
 
 def _render_admin_filters() -> dict:
@@ -53,77 +33,44 @@ def _render_admin_filters() -> dict:
             )
 
         with c2:
-            gender_raw = st.selectbox(
+            gender_raw = st.multiselect(
                 t("admin_gender_filter"),
-                options=["all", "male", "female", "other", "unknown"],
+                options=["male", "female", "other", "unknown"],
+                default=["male", "female", "other", "unknown"],
                 format_func=lambda v: (
-                    t("admin_all")
-                    if v == "all"
-                    else t("admin_unknown")
-                    if v == "unknown"
-                    else t(f"gender_{v}")
+                    t("admin_unknown") if v == "unknown" else t(f"gender_{v}")
                 ),
                 key="wf_admin_gender",
             )
 
         with c3:
-            in_creuse_raw = st.selectbox(
+            in_creuse_raw = st.multiselect(
                 t("admin_in_creuse_filter"),
-                options=["all", "yes", "no", "unknown"],
+                options=["yes", "no", "unknown"],
+                default=["yes", "no", "unknown"],
                 format_func=lambda v: (
-                    t("admin_all")
-                    if v == "all"
-                    else t("admin_unknown")
-                    if v == "unknown"
-                    else t("yes")
-                    if v == "yes"
-                    else t("no")
+                    t("admin_unknown") if v == "unknown" else t("yes") if v == "yes" else t("no")
                 ),
                 key="wf_admin_creuse",
             )
 
         with c4:
-            cinema_raw = st.selectbox(
+            cinema_raw = st.multiselect(
                 t("admin_cinema_filter"),
-                options=["all", "yes", "no", "unknown"],
+                options=["yes", "no", "unknown"],
+                default=["yes", "no", "unknown"],
                 format_func=lambda v: (
-                    t("admin_all")
-                    if v == "all"
-                    else t("admin_unknown")
-                    if v == "unknown"
-                    else t("yes")
-                    if v == "yes"
-                    else t("no")
+                    t("admin_unknown") if v == "unknown" else t("yes") if v == "yes" else t("no")
                 ),
                 key="wf_admin_cinema",
             )
 
-    gender = None if gender_raw == "all" else gender_raw
-    in_creuse = (
-        None
-        if in_creuse_raw == "all"
-        else "unknown"
-        if in_creuse_raw == "unknown"
-        else True
-        if in_creuse_raw == "yes"
-        else False
-    )
-    cinema_last_12m = (
-        None
-        if cinema_raw == "all"
-        else "unknown"
-        if cinema_raw == "unknown"
-        else True
-        if cinema_raw == "yes"
-        else False
-    )
-
     return {
         "age_range": age_range,
         "include_unknown_age": include_unknown_age,
-        "gender": gender,
-        "in_creuse": in_creuse,
-        "cinema_last_12m": cinema_last_12m,
+        "gender": gender_raw,
+        "in_creuse": in_creuse_raw,
+        "cinema_last_12m": cinema_raw,
     }
 
 
@@ -196,6 +143,8 @@ def main():
         if filtered_favs.empty:
             st.info(t("admin_no_likes"))
         else:
+            from utils.python_kpis import build_kpi_figure
+
             movies = movies_df.copy()
             if "imdb_key" in movies.columns:
                 movies["imdb_key"] = movies["imdb_key"].astype(str)
@@ -203,90 +152,44 @@ def main():
             merged = filtered_favs.merge(
                 movies, on="imdb_key", how="left").dropna(subset=["movie_title"])
 
-            c1, c2 = st.columns(2)
-            with c1:
-                genre_counts = (
-                    merged.groupby("genre_main")
-                    .size()
-                    .reset_index(name="likes")
-                    .sort_values("likes", ascending=False)
-                    .head(12)
-                )
-                if not genre_counts.empty:
-                    st.subheader(t("admin_likes_by_genre"))
-                    chart_df = genre_counts.set_index("genre_main")[["likes"]]
-                    st.bar_chart(chart_df, height=420)
+            st.subheader("KPIs (Python)")
+            kpi_options = ["kpi_prefs", "kpi_1", "kpi_3", "kpi_4", "kpi_5", "kpi_6"]
+            current_kpi = st.session_state.get("wf_admin_python_kpi")
+            if current_kpi not in kpi_options:
+                st.session_state["wf_admin_python_kpi"] = kpi_options[0]
 
-            with c2:
-                lang_counts = (
-                    merged.groupby("language")
-                    .size()
-                    .reset_index(name="likes")
-                    .sort_values("likes", ascending=False)
-                    .head(12)
-                )
-                if not lang_counts.empty:
-                    st.subheader(t("admin_likes_by_language"))
-                    chart_df = lang_counts.set_index("language")[["likes"]]
-                    st.bar_chart(chart_df, height=420)
+            kpi_id = st.selectbox(
+                "KPI",
+                options=kpi_options,
+                format_func=lambda v: {
+                    "kpi_prefs": "Préférence User du site",
+                    "kpi_1": "Réalisateurs",
+                    "kpi_3": "Acteurs",
+                    "kpi_4": "Genres & décennie",
+                    "kpi_5": "Durée",
+                    "kpi_6": "Classification âge",
+                }.get(v, str(v)),
+                key="wf_admin_python_kpi",
+            )
+
+            fig = build_kpi_figure(kpi_id, merged)
+            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
     with tab_bi:
         section_title("Dashboard Power BI")
+        from utils.powerbi import get_powerbi_iframe_url
 
-        # Check if secrets are configured
-        from utils.powerbi import get_powerbi_embed_info
-        import streamlit.components.v1 as components
-        import json
-
-        embed_data, err = get_powerbi_embed_info()
-
-        if err:
-            # Fallback to the old simple iframe if auth fails or not configured
-            st.warning(f"Mode API désactivé ou erreur : {err}")
-            st.info("Affichage en mode 'Utilisateur' (Nécessite connexion Microsoft)")
-
-            # Use the "simple" URL (User Owns Data)
-            # We can keep the hardcoded for now or use the one from secrets fallback
-            simple_url = "https://app.powerbi.com/reportEmbed?reportId=76c1a151-a7e7-48a8-9210-d53ebec79519&autoAuth=true&ctid=a2e466aa-4f86-4545-b5b8-97da7c8febf3"
-            st.markdown(
-                f"""
-                <iframe
-                    width="100%" height="650"
-                    src="{simple_url}"
-                    frameborder="0" allowFullScreen="true">
-                </iframe>
-                """,
-                unsafe_allow_html=True,
+        simple_url = get_powerbi_iframe_url()
+        if not simple_url:
+            st.warning("Power BI n'est pas configuré.")
+            st.code(
+                "[powerbi]\nSIMPLE_URL = \"https://app.powerbi.com/reportEmbed?...\"",
+                language="toml",
             )
         else:
-            # Render using JS SDK for seamless "App Owns Data" experience
-            st.success("Mode API Connecté (Service Principal)")
-
-            # HTML/JS for Power BI Client
-            # Uses public CDN for powerbi-client
-            html_code = f"""
-            <div id="embedContainer" style="height: 650px; width: 100%;"></div>
-            <script src="https://microsoft.github.io/PowerBI-JavaScript/demo/node_modules/powerbi-client/dist/powerbi.js"></script>
-            <script>
-                var models = window['powerbi-client'].models;
-                var config = {{
-                    type: 'report',
-                    tokenType: models.TokenType.Embed,
-                    accessToken: "{embed_data['accessToken']}",
-                    embedUrl: "{embed_data['embedUrl']}",
-                    id: "{embed_data['id']}",
-                    permissions: models.Permissions.All,
-                    settings: {{
-                        filterPaneEnabled: false,
-                        navContentPaneEnabled: true
-                    }}
-                }};
-                
-                var embedContainer = document.getElementById('embedContainer');
-                var report = powerbi.embed(embedContainer, config);
-            </script>
-            """
-            components.html(html_code, height=650)
+            st.info("Affichage Power BI (nécessite connexion Microsoft).")
+            components.iframe(simple_url, height=650, scrolling=True)
+            st.caption(t("admin_powerbi_note"))
 
     with tab_settings:
         section_title(t("admin_settings_tab"))
@@ -312,13 +215,12 @@ def main():
                 st.rerun()
         with c2:
             backend, reason = get_recommender_info()
-            st.caption(
-                t(
-                    "admin_reco_backend_status",
-                    "ML" if backend == "knn_cosine" else "Fallback",
-                    (reason or "").strip() or "-",
-                )
-            )
+            mode = "ML" if backend == "knn_cosine" else "Fallback"
+            details = (reason or "").strip()
+            if details:
+                st.caption(t("admin_reco_backend_status", mode, details))
+            else:
+                st.caption(f"Moteur : {mode}")
 
 
 if __name__ == "__main__":

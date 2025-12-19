@@ -146,9 +146,9 @@ def apply_user_filters(
     users_df: pd.DataFrame,
     age_range: tuple[int, int] = (0, 120),
     include_unknown_age: bool = True,
-    gender: str | None = None,
-    in_creuse: bool | str | None = None,
-    cinema_last_12m: bool | str | None = None,
+    gender: list[str] | None = None,
+    in_creuse: list[str] | None = None,
+    cinema_last_12m: list[str] | None = None,
 ) -> pd.DataFrame:
     if users_df.empty:
         return users_df
@@ -164,22 +164,36 @@ def apply_user_filters(
             df = df[age.between(age_min, age_max)]
 
     if gender is not None:
-        if gender == "unknown":
-            df = df[df["gender"].isna()]
-        else:
-            df = df[df["gender"] == str(gender).lower()]
+        allowed = {str(v).strip().lower() for v in gender if str(v).strip()}
+        all_values = {"male", "female", "other", "unknown"}
+        if allowed and allowed != all_values:
+            mask = pd.Series(False, index=df.index)
+            if "unknown" in allowed:
+                mask |= df["gender"].isna()
+            known = sorted(v for v in allowed if v != "unknown")
+            if known:
+                mask |= df["gender"].isin(known)
+            df = df[mask]
 
-    def _apply_bool_filter(col: str, value: bool | str | None) -> None:
+    def _apply_multi_bool_filter(col: str, selected: list[str] | None) -> None:
         nonlocal df
-        if value is None:
+        if selected is None:
             return
-        if value == "unknown":
-            df = df[df[col].isna()]
+        allowed = {str(v).strip().lower() for v in selected if str(v).strip()}
+        all_values = {"yes", "no", "unknown"}
+        if not allowed or allowed == all_values:
             return
-        df = df[df[col] == bool(value)]
+        mask = pd.Series(False, index=df.index)
+        if "unknown" in allowed:
+            mask |= df[col].isna()
+        if "yes" in allowed:
+            mask |= df[col] == True
+        if "no" in allowed:
+            mask |= df[col] == False
+        df = df[mask]
 
-    _apply_bool_filter("in_creuse", in_creuse)
-    _apply_bool_filter("cinema_last_12m", cinema_last_12m)
+    _apply_multi_bool_filter("in_creuse", in_creuse)
+    _apply_multi_bool_filter("cinema_last_12m", cinema_last_12m)
     return df
 
 

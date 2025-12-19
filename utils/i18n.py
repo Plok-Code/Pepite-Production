@@ -1,3 +1,6 @@
+import base64
+from pathlib import Path
+
 import streamlit as st
 
 # Dictionary of translations
@@ -5,7 +8,8 @@ TRANSLATIONS = {
     "fr": {
         # General
         "app_title": "Pepite Production",
-        "home_hero_title": "Pepite Production - Votre site de recommandation personnalisée de films",
+        "home_hero_title": "Pepite Production",
+        "home_hero_subtitle": "Votre site de recommandation personnalisée de films",
         "home_school_note": "Site réalisé dans le cadre d'un projet scolaire.",
         "home_intro": "Découvrez des films, ajoutez vos favoris et obtenez des recommandations personnalisées.",
         "home_title": "Accueil",
@@ -58,7 +62,11 @@ TRANSLATIONS = {
         "featured_section": "Films vedettes",
         "gems_section": "Nos Pépites",
         "niche_section": "Niche",
+        "flops_section": "Navets",
         "top_n_genre": "Top {} en {}",
+        "genre_random_title": "Sélection aléatoire : {} films en {}",
+        "genre_random_caption": "{} films affichés (ordre aléatoire).",
+        "refresh_button": "Rafraîchir",
         "click_to_open": "Cliquez sur un titre pour ouvrir la fiche du film.",
 
         # Movie Card
@@ -69,6 +77,7 @@ TRANSLATIONS = {
         "language_label": "Langue :",
         "duration_label": "Durée :",
         "minutes": "min",
+        "likes_label": "Likes :",
 
         # Auth
         "login_tab": "Connexion",
@@ -114,18 +123,7 @@ TRANSLATIONS = {
         "current_password": "Mot de passe actuel",
         "new_password": "Nouveau mot de passe",
         "confirm_new_password": "Confirmer",
-
-        # Cinemas
-        "cinemas_context_title": "Contexte du projet",
-        "cinemas_context_body": "Vous êtes un Data Analyst freelance. Un cinéma en perte de vitesse situé dans la Creuse vous contacte. Il a décidé de passer le cap du digital en créant un site Internet taillé pour les locaux. Pour aller encore plus loin, il vous demande de créer un moteur de recommandations de films.\n\nPour l’instant, aucun client n’a renseigné ses préférences, vous êtes dans une situation de cold start.",
-        "cinemas_construction_title": "Page en construction",
-        "cinemas_construction_body": "Cette page affichera bientôt la programmation du cinéma (films à l’affiche) ainsi que les événements et animations.",
-        "contact_title": "Contact",
-        "contact_name_label": "Nom",
-        "contact_message_label": "Message",
-        "contact_send": "Envoyer",
-        "contact_sent": "Merci ! Votre message a été enregistré (démo).",
-        "contact_disclaimer": "Ce formulaire est en cours de construction et n’envoie pas encore d’email.",
+        "protected_account_notice": "Compte partagé : changement d'email et de mot de passe désactivé.",
 
         # Favorites/Recos
         "your_collection": "Votre collection",
@@ -141,6 +139,7 @@ TRANSLATIONS = {
         "reco_install_hint": "Pour activer le modèle ML, installez les dépendances (ex: `pip install -r requirements.txt`).",
         "similar_movies_title": "Films similaires",
         "no_similar_movies": "Aucun film similaire trouvé.",
+        "more_in_genre": "Plus dans ce genre",
         "added_to_favs": "Ajouté aux favoris.",
         "removed_from_favs": "Retiré des favoris.",
         "fav_saved_mysql": "Sauvegardé sur MySQL.",
@@ -149,7 +148,8 @@ TRANSLATIONS = {
     "en": {
         # General
         "app_title": "Pepite Production",
-        "home_hero_title": "Pepite Production - Your personalized movie recommendation site",
+        "home_hero_title": "Pepite Production",
+        "home_hero_subtitle": "Your personalized movie recommendation site",
         "home_school_note": "Built as part of a school project.",
         "home_intro": "Discover movies, add favorites, and get personalized recommendations.",
         "home_title": "Home",
@@ -202,7 +202,11 @@ TRANSLATIONS = {
         "featured_section": "Featured Movies",
         "gems_section": "Our Selection",
         "niche_section": "Niche Picks",
+        "flops_section": "Flops",
         "top_n_genre": "Top {} in {}",
+        "genre_random_title": "Random selection: {} movies in {}",
+        "genre_random_caption": "{} movies shown (random order).",
+        "refresh_button": "Refresh",
         "click_to_open": "Click a title to open movie details.",
 
         # Movie Card
@@ -213,6 +217,7 @@ TRANSLATIONS = {
         "language_label": "Language:",
         "duration_label": "Duration:",
         "minutes": "min",
+        "likes_label": "Likes:",
 
         # Auth
         "login_tab": "Login",
@@ -258,18 +263,7 @@ TRANSLATIONS = {
         "current_password": "Current Password",
         "new_password": "New Password",
         "confirm_new_password": "Confirm",
-
-        # Cinemas
-        "cinemas_context_title": "Project context",
-        "cinemas_context_body": "You are a freelance Data Analyst. A struggling cinema located in Creuse contacts you. It has decided to go digital by creating a website tailored for locals. To go even further, it asks you to build a movie recommendation engine.\n\nFor now, no customer has provided preferences: you are in a cold start situation.",
-        "cinemas_construction_title": "Page under construction",
-        "cinemas_construction_body": "This page will soon show the cinema’s schedule (now showing) as well as events and special screenings.",
-        "contact_title": "Contact",
-        "contact_name_label": "Name",
-        "contact_message_label": "Message",
-        "contact_send": "Send",
-        "contact_sent": "Thanks! Your message has been saved (demo).",
-        "contact_disclaimer": "This form is under construction and does not send emails yet.",
+        "protected_account_notice": "Shared account: email and password changes are disabled.",
 
         # Favorites/Recos
         "your_collection": "Your Collection",
@@ -285,6 +279,7 @@ TRANSLATIONS = {
         "reco_install_hint": "To enable the ML model, install dependencies (e.g. `pip install -r requirements.txt`).",
         "similar_movies_title": "Similar movies",
         "no_similar_movies": "No similar movies found.",
+        "more_in_genre": "More in this genre",
         "added_to_favs": "Added to favorites.",
         "removed_from_favs": "Removed from favorites.",
         "fav_saved_mysql": "Saved to MySQL.",
@@ -316,15 +311,86 @@ t = get_text
 
 
 def render_sidebar_flags():
-    # CSS for Sidebar Flags (smaller than before, ~40px)
+    # Support switching language via URL, e.g. `?lang=fr` / `?lang=en`
+    url_lang = st.query_params.get("lang")
+    if url_lang in ("fr", "en") and url_lang != get_current_language():
+        set_language(str(url_lang))
+        try:
+            del st.query_params["lang"]
+        except Exception:
+            pass
+        st.rerun()
 
-    # Layout - simpler 2 columns
-    c1, c2 = st.sidebar.columns(2)
-    with c1:
-        if st.button("🇫🇷", key="side_lang_fr", use_container_width=True):
-            set_language("fr")
-            st.rerun()
-    with c2:
-        if st.button("🇺🇸", key="side_lang_en", use_container_width=True):
-            set_language("en")
-            st.rerun()
+    lang = get_current_language()
+
+    @st.cache_data(show_spinner=False)
+    def _flag_uri(filename: str) -> str | None:
+        flag_path = Path(__file__).resolve().parent.parent / \
+            "assets" / filename
+        if not flag_path.exists():
+            return None
+        try:
+            b64 = base64.b64encode(flag_path.read_bytes()).decode("ascii")
+            return f"data:image/png;base64,{b64}"
+        except Exception:
+            return None
+
+    fr_uri = _flag_uri("fr.png")
+    en_uri = _flag_uri("usa.png")
+
+    def _build_href(next_lang: str) -> str:
+        # Keep existing query params (e.g. auth_token, page, id) and only set `lang`.
+        params: dict[str, object] = {}
+        for k, v in st.query_params.items():
+            if k == "lang":
+                continue
+            params[k] = v
+        params["lang"] = next_lang
+        from urllib.parse import urlencode
+
+        return "?" + urlencode(params, doseq=True)
+
+    fr_href = _build_href("fr")
+    en_href = _build_href("en")
+
+    # Only the two flags, side by side (clickable), consistent across browsers.
+    st.sidebar.markdown(
+        f"""
+        <style>
+          .wf-lang-switch {{
+            display: flex;
+            justify-content: center;
+            gap: 14px;
+            margin: 8px 0 2px 0;
+          }}
+          .wf-lang-switch a {{
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+          }}
+          .wf-lang-flag {{
+            width: 54px;
+            height: 36px;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            box-sizing: border-box;
+            background: var(--surface);
+          }}
+          .wf-lang-flag.wf-active {{
+            border: 2px solid var(--primary);
+            box-shadow: 0 0 0 3px rgba(255,176,32,0.18);
+          }}
+        </style>
+        <div class="wf-lang-switch" aria-label="Language switch">
+          <a href="{fr_href}" title="Français">
+            <img class="wf-lang-flag {'wf-active' if lang == 'fr' else ''}" src="{fr_uri or ''}" alt="FR" />
+          </a>
+          <a href="{en_href}" title="English">
+            <img class="wf-lang-flag {'wf-active' if lang == 'en' else ''}" src="{en_uri or ''}" alt="EN" />
+          </a>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )

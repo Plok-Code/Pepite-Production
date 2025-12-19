@@ -21,6 +21,9 @@ def apply_wildflix_theme():
           --radius:14px;
           --radius-btn:12px;
           --shadow:0 10px 28px rgba(0,0,0,.35);
+          --wf-topbar-offset: 3.25rem; /* Streamlit's own top header */
+          --wf-global-header-height: 92px;
+          --wf-sidebar-width: 21rem; /* fallback when Streamlit CSS vars are unavailable */
         }
 
         .stApp{
@@ -114,7 +117,25 @@ def apply_wildflix_theme():
         }
 
         /* Main layout spacing */
-        [data-testid="stMainBlockContainer"]{ padding-top: 14px; }
+        /* Offset content for the fixed global header */
+        [data-testid="stMainBlockContainer"]{
+          padding-top: calc(var(--wf-global-header-height) + 18px) !important;
+        }
+
+        /* Global fixed header (logo + search) */
+        [class*="st-key-wf_global_header"]{
+          position: fixed !important;
+          top: var(--wf-topbar-offset) !important;
+          left: 0 !important;
+          right: 0 !important;
+          width: 100% !important;
+          box-sizing: border-box !important;
+          z-index: 1001 !important;
+          padding: 10px 24px !important;
+          background: rgba(11, 15, 23, 0.92);
+          backdrop-filter: blur(10px);
+          border-bottom: 1px solid var(--border);
+        }
         
         /* --- COMPONENT STYLES (Moved from ui_components.py) --- */
         
@@ -266,20 +287,37 @@ def apply_wildflix_theme():
              font-weight: 800 !important;
         }
 
-        /* 2. FLAGS: Force Size 48px & Visibility */
-        [class*="st-key-side_lang_"] button,
-        [class*="st-key-side_lang_"] button div,
-        [class*="st-key-side_lang_"] button p,
-        [class*="st-key-side_lang_"] button span {
-             font-size: 48px !important;
-             min-height: 54px !important;
-             height: auto !important;
-             background: transparent !important;
-             border: none !important;
-             opacity: 1 !important;
-             visibility: visible !important;
-             color: #ffffff !important;
-             line-height: 1.1 !important;
+        /* Safety: ensure Streamlit form submit buttons keep black text (Profile) */
+        [class*="st-key-wf_profile_save"] button *,
+        [class*="st-key-wf_profile_password_update"] button *{
+             color: #000000 !important;
+             -webkit-text-fill-color: #000000 !important;
+        }
+
+        /* 2. LANGUAGE TOGGLE (Sidebar) */
+        [class*="st-key-side_lang_"] button{
+             background-color: var(--surface) !important;
+             border: 1px solid var(--border) !important;
+             border-radius: var(--radius-btn) !important;
+             padding: 10px 12px !important;
+             min-height: 44px !important;
+        }
+        [class*="st-key-side_lang_"] button:hover{
+             filter: brightness(1.05);
+             transform: translateY(-1px);
+        }
+        [class*="st-key-side_lang_"] button *{
+             color: var(--text) !important;
+             -webkit-text-fill-color: var(--text) !important;
+             font-weight: 800 !important;
+             font-size: 16px !important;
+             line-height: 1 !important;
+        }
+
+        /* Checkbox checkmark color (Admin include-unknown): match black text on primary */
+        [class*="st-key-wf_admin_age_unknown"] div[data-testid="stCheckbox"] svg{
+             fill: #0B0F17 !important;
+             stroke: #0B0F17 !important;
         }
 
         /* --- HEART OVERLAY (MOVED TO END FOR PRECEDENCE) --- */

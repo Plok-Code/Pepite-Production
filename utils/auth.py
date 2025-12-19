@@ -26,6 +26,31 @@ SECRET_KEY = get_secret_key()
 _UNSET = object()
 
 
+def is_protected_account(email: str | None) -> bool:
+    """
+    Protected accounts can use the app like admins but cannot change their login email nor password.
+
+    Configure in `.streamlit/secrets.toml`:
+      [auth]
+      protected_accounts = ["shared.admin@wildflix.com"]
+    """
+    if not email:
+        return False
+    email_clean = str(email).strip().lower()
+    # Built-in protected shared account (works even without secrets configured).
+    builtin = {"shared.admin@wildflix.com"}
+    try:
+        auth_cfg = st.secrets.get("auth", st.secrets)
+        items = auth_cfg.get("protected_accounts") or auth_cfg.get(
+            "PROTECTED_ACCOUNTS") or []
+        if isinstance(items, str):
+            items = [items]
+        protected = {str(x).strip().lower() for x in items if str(x).strip()}
+        return email_clean in (protected | builtin)
+    except Exception:
+        return email_clean in builtin
+
+
 def generate_session_token(email: str) -> str:
     """Generates a signed token containing email and timestamp."""
     payload = {
@@ -70,9 +95,7 @@ def init_auth_state():
         email_from_token = None
 
         if token:
-            print(f"DEBUG: Found auth_token in URL: {token[:10]}...")
             email_from_token = verify_session_token(token)
-            print(f"DEBUG: Token verified email: {email_from_token}")
 
         if email_from_token:
             # Auto-login
@@ -90,7 +113,8 @@ def init_auth_state():
                     st.session_state.date_of_birth = user.get("date_of_birth")
                     st.session_state.gender = user.get("gender")
                     st.session_state.in_creuse = user.get("in_creuse")
-                    st.session_state.cinema_last_12m = user.get("cinema_last_12m")
+                    st.session_state.cinema_last_12m = user.get(
+                        "cinema_last_12m")
                     st.session_state.flash_message = f"Bon retour, {st.session_state.pseudo} !"
                     return
             except Exception:
@@ -136,10 +160,14 @@ def login_dialog():
     tab_login, tab_signup = st.tabs([t("login_tab"), t("signup_tab")])
 
     with tab_login:
-        email = st.text_input(t("email_label"), key="wf_modal_login_email")
-        password = st.text_input(
-            t("password_label"), type="password", key="wf_modal_login_password")
-        if st.button(t("login_submit"), key="wf_modal_login_submit", type="primary", use_container_width=True):
+        with st.form("login_form"):
+            email = st.text_input(t("email_label"), key="wf_modal_login_email")
+            password = st.text_input(
+                t("password_label"), type="password", key="wf_modal_login_password")
+            submitted = st.form_submit_button(
+                t("login_submit"), type="primary", use_container_width=True)
+
+        if submitted:
             email_clean = str(email).strip().lower()
             try:
                 user = get_user(email_clean)
@@ -167,46 +195,53 @@ def login_dialog():
                 st.error(t("invalid_credentials"))
 
     with tab_signup:
-        pseudo = st.text_input(t("pseudo_label"), key="wf_modal_signup_pseudo")
-        email = st.text_input(t("email_label"), key="wf_modal_signup_email")
-        password = st.text_input(
-            t("password_label"), type="password", key="wf_modal_signup_password")
-        confirm = st.text_input(
-            t("password_confirm"), type="password", key="wf_modal_signup_password_confirm"
-        )
+        with st.form("signup_form"):
+            pseudo = st.text_input(
+                t("pseudo_label"), key="wf_modal_signup_pseudo")
+            email = st.text_input(
+                t("email_label"), key="wf_modal_signup_email")
+            password = st.text_input(
+                t("password_label"), type="password", key="wf_modal_signup_password")
+            confirm = st.text_input(
+                t("password_confirm"), type="password", key="wf_modal_signup_password_confirm"
+            )
 
-        date_of_birth = st.date_input(
-            t("dob_label"),
-            value=None,
-            format="YYYY-MM-DD",
-            key="wf_modal_signup_dob",
-        )
-        gender = st.selectbox(
-            t("gender_label"),
-            options=["male", "female", "other"],
-            format_func=lambda v: t(f"gender_{v}"),
-            index=None,
-            placeholder=t("optional_placeholder"),
-            key="wf_modal_signup_gender",
-        )
-        in_creuse = st.selectbox(
-            t("in_creuse_label"),
-            options=[True, False],
-            format_func=lambda v: t("yes") if v else t("no"),
-            index=None,
-            placeholder=t("optional_placeholder"),
-            key="wf_modal_signup_in_creuse",
-        )
-        cinema_last_12m = st.selectbox(
-            t("cinema_12m_label"),
-            options=[True, False],
-            format_func=lambda v: t("yes") if v else t("no"),
-            index=None,
-            placeholder=t("optional_placeholder"),
-            key="wf_modal_signup_cinema_12m",
-        )
+            dob_format = "DD-MM-YYYY" if get_current_language() == "fr" else "MM-DD-YYYY"
+            date_of_birth = st.date_input(
+                t("dob_label"),
+                value=None,
+                format=dob_format,
+                key="wf_modal_signup_dob",
+            )
+            gender = st.selectbox(
+                t("gender_label"),
+                options=["male", "female", "other"],
+                format_func=lambda v: t(f"gender_{v}"),
+                index=None,
+                placeholder=t("optional_placeholder"),
+                key="wf_modal_signup_gender",
+            )
+            in_creuse = st.selectbox(
+                t("in_creuse_label"),
+                options=[True, False],
+                format_func=lambda v: t("yes") if v else t("no"),
+                index=None,
+                placeholder=t("optional_placeholder"),
+                key="wf_modal_signup_in_creuse",
+            )
+            cinema_last_12m = st.selectbox(
+                t("cinema_12m_label"),
+                options=[True, False],
+                format_func=lambda v: t("yes") if v else t("no"),
+                index=None,
+                placeholder=t("optional_placeholder"),
+                key="wf_modal_signup_cinema_12m",
+            )
 
-        if st.button(t("signup_submit"), key="wf_modal_signup_submit", type="primary", use_container_width=True):
+            site_submitted = st.form_submit_button(
+                t("signup_submit"), type="primary", use_container_width=True)
+
+        if site_submitted:
             if password != confirm:
                 st.error(t("passwords_mismatch"))
             else:
@@ -248,8 +283,10 @@ def login_dialog():
                         "date_of_birth") or (
                         date_of_birth.isoformat() if date_of_birth else None
                     )
-                    st.session_state.gender = (user or {}).get("gender") or gender
-                    st.session_state.in_creuse = (user or {}).get("in_creuse") if user else in_creuse
+                    st.session_state.gender = (
+                        user or {}).get("gender") or gender
+                    st.session_state.in_creuse = (user or {}).get(
+                        "in_creuse") if user else in_creuse
                     st.session_state.cinema_last_12m = (user or {}).get(
                         "cinema_last_12m") if user else cinema_last_12m
                     st.session_state.flash_message = t("account_created")
@@ -260,7 +297,8 @@ def login_dialog():
 
 def login_form():
     if st.session_state.get("is_authenticated", False):
-        pseudo = str(st.session_state.get("pseudo") or "").strip() or "Utilisateur"
+        pseudo = str(st.session_state.get("pseudo")
+                     or "").strip() or "Utilisateur"
         pseudo_html = html.escape(pseudo)
         connected_html = t(
             "logged_in_as",
@@ -352,6 +390,12 @@ def update_profile(
     if not current_email:
         return False, "Utilisateur introuvable."
 
+    if is_protected_account(str(current_email)):
+        cleaned_new = str(new_email).strip().lower(
+        ) if new_email is not None else str(current_email).strip().lower()
+        if cleaned_new != str(current_email).strip().lower():
+            return False, "Ce compte ne peut pas modifier son email de connexion."
+
     try:
         updates = {
             "current_email": str(current_email),
@@ -402,6 +446,9 @@ def change_password(current_password: str, new_password: str) -> tuple[bool, str
     if not email:
         return False, "Utilisateur introuvable."
 
+    if is_protected_account(str(email)):
+        return False, "Ce compte ne peut pas modifier son mot de passe."
+
     try:
         user = get_user(str(email))
     except Exception:
@@ -429,7 +476,8 @@ def sidebar_navigation():
         unsafe_allow_html=True,
     )
 
-    logo_path = Path(__file__).resolve().parent.parent / "assets" / "logo_pepite_prod.png"
+    logo_path = Path(__file__).resolve().parent.parent / \
+        "assets" / "logo_pepite_prod.png"
     if logo_path.exists():
         st.sidebar.image(str(logo_path), use_container_width=True)
 

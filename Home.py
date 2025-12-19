@@ -1,4 +1,4 @@
-import pandas as pd
+import random
 import streamlit as st
 
 from utils.data_loader import load_movies
@@ -6,13 +6,7 @@ from utils.header import render_global_search
 from utils.ui_components import render_movie_row, section_title
 from utils.i18n import t
 from utils.layout import common_page_setup
-from services.movie_service import (
-    get_featured_movies,
-    get_blockbuster,
-    get_underrated_gems,
-    get_niche_movies,
-    exclude_keys
-)
+from utils.movie_categories import categorize_movies, sample_rows
 
 
 def main():
@@ -23,57 +17,49 @@ def main():
     render_global_search(df, source_page="Home.py")
 
     st.markdown(f"## {t('home_hero_title')}")
+    st.markdown(f"##### {t('home_hero_subtitle')}")
     st.caption(t("home_school_note"))
     st.caption(t("home_intro"))
 
-    # Logic to fetch movies
-    used_keys: set[str] = set()
+    # Random selections based on the categories defined in the project spec.
+    categorized, _, _ = categorize_movies(df, min_votes=5)
 
-    # 1. Vedettes (Featured + Blockbuster + 1 Gem)
-    featured_top3 = get_featured_movies(df, n=3)
-    if "imdb_key" in featured_top3.columns:
-        used_keys.update(
-            featured_top3["imdb_key"].dropna().astype(str).tolist())
+    if "wf_home_seed" not in st.session_state:
+        st.session_state["wf_home_seed"] = random.randint(0, 2_147_483_647)
+    seed = int(st.session_state["wf_home_seed"])
 
-    remaining = exclude_keys(df, used_keys)
-
-    blockbuster = get_blockbuster(remaining, n=1)
-    if "imdb_key" in blockbuster.columns:
-        used_keys.update(blockbuster["imdb_key"].dropna().astype(str).tolist())
-
-    remaining = exclude_keys(df, used_keys)
-
-    gem_one = get_underrated_gems(remaining, n=1)
-    if "imdb_key" in gem_one.columns:
-        used_keys.update(gem_one["imdb_key"].dropna().astype(str).tolist())
-
-    remaining = exclude_keys(df, used_keys)
-
-    # Render Vedettes
+    # 1) Vedettes / Blockbusters
     section_title(t("featured_section"))
-    vedettes_df = pd.concat(
-        [featured_top3, blockbuster, gem_one], ignore_index=True)
+    vedettes_pool = categorized[categorized["category"] == "Blockbuster"]
+    vedettes_df = sample_rows(vedettes_pool, n=5, seed=seed + 1)
     render_movie_row(vedettes_df, key="home_vedettes",
                      max_items=5, source_page="Home.py")
 
     st.markdown("---")
 
-    # 2. Pépites (Gems)
+    # 2) Pépites
     section_title(t("gems_section"))
-    pepites_df = get_underrated_gems(remaining, n=5)
+    pepites_pool = categorized[categorized["category"] == "Pépite"]
+    pepites_df = sample_rows(pepites_pool, n=5, seed=seed + 2)
     render_movie_row(pepites_df, key="home_pepites",
                      max_items=5, source_page="Home.py")
 
-    if "imdb_key" in pepites_df.columns:
-        used_keys.update(pepites_df["imdb_key"].dropna().astype(str).tolist())
-    remaining = exclude_keys(df, used_keys)
+    st.markdown("---")
+
+    # 3) Niche
+    section_title(t("niche_section"))
+    niche_pool = categorized[categorized["category"] == "Niche"]
+    niche_df = sample_rows(niche_pool, n=5, seed=seed + 3)
+    render_movie_row(niche_df, key="home_niche",
+                     max_items=5, source_page="Home.py")
 
     st.markdown("---")
 
-    # 3. Niche
-    section_title(t("niche_section"))
-    niche_df = get_niche_movies(remaining, n=5)
-    render_movie_row(niche_df, key="home_niche",
+    # 4) Navets
+    section_title(t("flops_section"))
+    navets_pool = categorized[categorized["category"] == "Navet"]
+    navets_df = sample_rows(navets_pool, n=5, seed=seed + 4)
+    render_movie_row(navets_df, key="home_navets",
                      max_items=5, source_page="Home.py")
 
 
