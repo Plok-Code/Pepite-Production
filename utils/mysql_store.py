@@ -22,14 +22,14 @@ def get_mysql_config() -> dict[str, Any] | None:
         mysql_section = st.secrets["mysql"]
         cfg = dict(mysql_section)
     except (StreamlitSecretNotFoundError, KeyError, TypeError):
-        host = os.getenv("MYSQL_HOST")
+        host = os.getenv("MYSQL_HOST") or os.getenv("MYSQLHOST")
         if host:
             cfg = {
                 "host": host,
-                "port": int(os.getenv("MYSQL_PORT", "3306")),
-                "user": os.getenv("MYSQL_USER", ""),
-                "password": os.getenv("MYSQL_PASSWORD", ""),
-                "database": os.getenv("MYSQL_DATABASE", ""),
+                "port": int(os.getenv("MYSQL_PORT") or os.getenv("MYSQLPORT") or "3306"),
+                "user": os.getenv("MYSQL_USER") or os.getenv("MYSQLUSER") or "",
+                "password": os.getenv("MYSQL_PASSWORD") or os.getenv("MYSQLPASSWORD") or "",
+                "database": os.getenv("MYSQL_DATABASE") or os.getenv("MYSQLDATABASE") or "",
             }
 
     host = str(cfg.get("host", "")).strip()

@@ -19,3 +19,9 @@
   - `python scripts/ensure_admin.py --email admin@wildflix.com --password "..." --pseudo "Admin"`
 - Pour générer des comptes de démo au 1er lancement (non recommandé en prod) :
   - `WILDFLIX_SEED_DEMO_USERS=1`
+
+## Migration local -> MySQL
+
+1. Vérifie que `data/users.json` contient bien tes comptes (sur ton PC).
+2. Exporte les variables MySQL Railway en env (`MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_DATABASE`) ou mets-les dans `.streamlit/secrets.toml`.
+3. Lance : `python scripts/migrate_local_users_to_mysql.py`
