@@ -81,8 +81,11 @@ def is_protected_account(email: str | None) -> bool:
     if not email:
         return False
     email_clean = str(email).strip().lower()
-    # Built-in protected shared account (works even without secrets configured).
-    builtin = {"shared.admin@wildflix.com"}
+    # Built-in protected shared/admin accounts (work even without secrets configured).
+    builtin = {
+        "shared.admin@wildflix.com",
+        "admin@wildflix.com",
+    }
     bootstrap_cfg = get_bootstrap_admin_config()
     if bootstrap_cfg:
         bootstrap_email = str(bootstrap_cfg.get("email") or "").strip().lower()
