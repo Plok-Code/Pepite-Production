@@ -83,6 +83,11 @@ def is_protected_account(email: str | None) -> bool:
     email_clean = str(email).strip().lower()
     # Built-in protected shared account (works even without secrets configured).
     builtin = {"shared.admin@wildflix.com"}
+    bootstrap_cfg = get_bootstrap_admin_config()
+    if bootstrap_cfg:
+        bootstrap_email = str(bootstrap_cfg.get("email") or "").strip().lower()
+        if bootstrap_email:
+            builtin.add(bootstrap_email)
     try:
         auth_cfg = st.secrets.get("auth", st.secrets)
         items = auth_cfg.get("protected_accounts") or auth_cfg.get(
