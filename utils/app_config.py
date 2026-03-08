@@ -52,6 +52,16 @@ def get_bootstrap_admin_config() -> dict[str, str] | None:
             password = password or str(section.get("password") or "").strip()
             pseudo = pseudo or str(section.get("pseudo") or "").strip()
 
+    if not email or not password:
+        try:
+            section = st.secrets.get("github_store", {})
+        except Exception:
+            section = {}
+        if isinstance(section, dict):
+            email = email or str(section.get("WILDFLIX_ADMIN_EMAIL") or "").strip()
+            password = password or str(section.get("WILDFLIX_ADMIN_PASSWORD") or "").strip()
+            pseudo = pseudo or str(section.get("WILDFLIX_ADMIN_PSEUDO") or "").strip()
+
     email = email or os.getenv("WILDFLIX_ADMIN_EMAIL", "").strip()
     password = password or os.getenv("WILDFLIX_ADMIN_PASSWORD", "").strip()
     pseudo = pseudo or os.getenv("WILDFLIX_ADMIN_PSEUDO", "").strip()
