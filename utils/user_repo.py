@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from utils.github_store import is_github_store_enabled
 from utils.mysql_store import (
     create_user as mysql_create_user,
     get_favorites as mysql_get_favorites,
@@ -40,7 +41,11 @@ def _is_mysql_available() -> bool:
 
 
 def backend_name() -> str:
-    return "mysql" if _is_mysql_available() else "local"
+    if _is_mysql_available():
+        return "mysql"
+    if is_github_store_enabled():
+        return "github"
+    return "local"
 
 
 def get_user(email: str) -> dict[str, Any] | None:

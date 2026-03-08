@@ -9,11 +9,13 @@ from utils.admin_analytics import (
     load_users_df,
 )
 from utils.data_loader import load_movies
+from utils.github_store import get_github_store_status
 from utils.header import render_global_search
 from utils.i18n import t
 from utils.layout import common_page_setup
 from utils.settings import get_recommender_model, set_recommender_model
 from utils.ui_components import render_movie_row, section_title
+from utils.user_repo import backend_name
 from services.recommendation_service import get_recommender_info
 
 
@@ -196,6 +198,25 @@ def main():
 
     with tab_settings:
         section_title(t("admin_settings_tab"))
+
+        with st.container(border=True):
+            st.subheader("Stockage")
+            st.caption(f"Backend applicatif detecte : {backend_name()}")
+            gh = get_github_store_status()
+            if not gh["enabled"]:
+                st.warning("GitHub store non configure dans le runtime du site.")
+            else:
+                st.write(
+                    {
+                        "owner": gh["owner"],
+                        "repo": gh["repo"],
+                        "branch": gh["branch"],
+                        "path": gh["path"],
+                        "reachable": gh["reachable"],
+                    }
+                )
+                if gh["reachable"] is False and gh["error"]:
+                    st.error(gh["error"])
 
         current_model = get_recommender_model()
         options = ["cosine", "euclidean", "manhattan"]

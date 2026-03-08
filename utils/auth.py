@@ -172,7 +172,7 @@ def login_dialog():
             try:
                 user = get_user(email_clean)
             except Exception as e:
-                st.error(f"Erreur SGBD: {e}")
+                st.error(f"Erreur de stockage: {e}")
                 return
             if user and verify_user_password(user, password):
                 st.session_state.is_authenticated = True
@@ -259,7 +259,7 @@ def login_dialog():
                         cinema_last_12m=cinema_last_12m,
                     )
                 except Exception as e:
-                    st.error(f"Erreur SGBD: {e}")
+                    st.error(f"Erreur de stockage: {e}")
                     return
                 if not ok:
                     st.error(msg)
@@ -361,7 +361,7 @@ def toggle_favorite(imdb_key: str) -> bool:
                 save_favorites(
                     str(st.session_state["user_email"]), set(map(str, favorites)))
             except Exception:
-                st.session_state["flash_message"] = "Retire (non sauvegarde MySQL)."
+                st.session_state["flash_message"] = "Retire (non sauvegarde distante)."
         return False
 
     favorites.add(imdb_key)
@@ -371,7 +371,7 @@ def toggle_favorite(imdb_key: str) -> bool:
             save_favorites(
                 str(st.session_state["user_email"]), set(map(str, favorites)))
         except Exception:
-            st.session_state["flash_message"] = "Ajoute (non sauvegarde MySQL)."
+            st.session_state["flash_message"] = "Ajoute (non sauvegarde distante)."
     return True
 
 
@@ -413,7 +413,7 @@ def update_profile(
 
         ok, msg, next_email = repo_update_profile(**updates)
     except Exception:
-        return False, "Mise a jour impossible (MySQL)."
+        return False, "Mise a jour impossible (stockage)."
     if not ok:
         return False, msg
 
@@ -434,7 +434,7 @@ def update_profile(
         save_favorites(next_email, set(
             map(str, st.session_state.get("favorites", set()))))
     except Exception:
-        st.session_state["flash_message"] = "Profil mis a jour (favoris non sauvegardes MySQL)."
+        st.session_state["flash_message"] = "Profil mis a jour (favoris non sauvegardes)."
     return True, msg
 
 
@@ -452,7 +452,7 @@ def change_password(current_password: str, new_password: str) -> tuple[bool, str
     try:
         user = get_user(str(email))
     except Exception:
-        return False, "Connexion MySQL impossible."
+        return False, "Connexion au stockage impossible."
     if not user:
         return False, "Utilisateur introuvable."
 
@@ -462,7 +462,7 @@ def change_password(current_password: str, new_password: str) -> tuple[bool, str
     try:
         return update_user_password(str(email), str(new_password))
     except Exception:
-        return False, "Mot de passe non mis a jour (MySQL)."
+        return False, "Mot de passe non mis a jour (stockage)."
 
 
 def sidebar_navigation():

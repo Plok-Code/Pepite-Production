@@ -18,6 +18,16 @@ except Exception:  # pragma: no cover
         pass
 
 
+def _streamlit_secret_str(key: str) -> str:
+    if st is None:
+        return ""
+    try:
+        value = st.secrets.get(str(key))
+    except Exception:
+        return ""
+    return str(value or "").strip()
+
+
 def get_github_store_config() -> dict[str, str] | None:
     cfg: dict[str, str] = {}
 
@@ -27,6 +37,19 @@ def get_github_store_config() -> dict[str, str] | None:
             cfg = {str(k): str(v) for k, v in dict(section).items()}
         except (StreamlitSecretNotFoundError, KeyError, TypeError):
             cfg = {}
+
+    if not cfg:
+        owner = _streamlit_secret_str("GITHUB_DATA_OWNER")
+        repo = _streamlit_secret_str("GITHUB_DATA_REPO")
+        token = _streamlit_secret_str("GITHUB_DATA_TOKEN")
+        if owner and repo and token:
+            cfg = {
+                "owner": owner,
+                "repo": repo,
+                "token": token,
+                "branch": _streamlit_secret_str("GITHUB_DATA_BRANCH") or "main",
+                "path": _streamlit_secret_str("GITHUB_DATA_PATH") or "data/users.json",
+            }
 
     if not cfg:
         owner = os.getenv("GITHUB_DATA_OWNER", "").strip()
@@ -61,6 +84,40 @@ def get_github_store_config() -> dict[str, str] | None:
 
 def is_github_store_enabled() -> bool:
     return get_github_store_config() is not None
+
+
+def get_github_store_status() -> dict[str, Any]:
+    cfg = get_github_store_config()
+    status: dict[str, Any] = {
+        "enabled": bool(cfg),
+        "owner": "",
+        "repo": "",
+        "branch": "",
+        "path": "",
+        "reachable": None,
+        "error": "",
+    }
+    if not cfg:
+        return status
+
+    status.update(
+        {
+            "owner": cfg["owner"],
+            "repo": cfg["repo"],
+            "branch": cfg["branch"],
+            "path": cfg["path"],
+        }
+    )
+
+    try:
+        repo_url = f"https://api.github.com/repos/{cfg['owner']}/{cfg['repo']}"
+        _request_json(method="GET", url=repo_url, token=cfg["token"])
+        status["reachable"] = True
+    except Exception as exc:
+        status["reachable"] = False
+        status["error"] = str(exc)
+
+    return status
 
 
 def _copy_json_like(value: Any) -> Any:
