@@ -4,8 +4,14 @@ import argparse
 import os
 import secrets
 import string
+import sys
+from pathlib import Path
 
-from utils.user_repo import backend_name, create_user, get_user, update_user_password
+ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from utils.user_repo import backend_name, create_user, get_user, update_user_password  # noqa: E402
 
 
 def _generate_password(length: int = 16) -> str:

@@ -5,6 +5,12 @@ import os
 import secrets
 from pathlib import Path
 
+from utils.github_store import (
+    is_github_store_enabled,
+    read_json_file as github_read_json_file,
+    save_json_file as github_save_json_file,
+)
+
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 USERS_PATH = DATA_DIR / "users.json"
@@ -39,12 +45,7 @@ def _hash_password(password: str, salt_b64: str | None = None) -> tuple[str, str
     return salt_b64, digest_b64
 
 
-def _ensure_user_store():
-    if USERS_PATH.exists():
-        return
-
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-
+def _build_seed_users() -> dict[str, dict]:
     users: dict[str, dict] = {}
     for email, info in SEED_USERS.items():
         salt_b64, digest_b64 = _hash_password(str(info["password"]))
@@ -60,15 +61,36 @@ def _ensure_user_store():
             "cinema_last_12m": None,
         }
 
-    USERS_PATH.write_text(json.dumps(users, indent=2, ensure_ascii=False), encoding="utf-8")
+    return users
+
+
+def _ensure_local_user_store(seed_users: dict[str, dict]) -> None:
+    if USERS_PATH.exists():
+        return
+
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    USERS_PATH.write_text(json.dumps(seed_users, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
 def load_users() -> dict[str, dict]:
-    _ensure_user_store()
+    seed_users = _build_seed_users()
+
+    if is_github_store_enabled():
+        users, exists = github_read_json_file(default=seed_users)
+        if not exists and seed_users:
+            github_save_json_file(seed_users, commit_message="Initialize data/users.json")
+            return seed_users
+        return users
+
+    _ensure_local_user_store(seed_users)
     return json.loads(USERS_PATH.read_text(encoding="utf-8"))
 
 
 def save_users(users: dict[str, dict]) -> None:
+    if is_github_store_enabled():
+        github_save_json_file(users)
+        return
+
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     USERS_PATH.write_text(json.dumps(users, indent=2, ensure_ascii=False), encoding="utf-8")
 
