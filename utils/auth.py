@@ -19,11 +19,55 @@ import json
 import html
 from pathlib import Path
 
-from utils.app_config import get_secret_key
+from utils.app_config import get_bootstrap_admin_config, get_secret_key
 
 # Secret key for signing tokens
 SECRET_KEY = get_secret_key()
 _UNSET = object()
+
+
+def ensure_bootstrap_admin() -> None:
+    cfg = get_bootstrap_admin_config()
+    if not cfg:
+        return
+
+    email = str(cfg["email"]).strip().lower()
+    password = str(cfg["password"])
+    pseudo = str(cfg.get("pseudo") or "Admin").strip() or "Admin"
+
+    if not email or "@" not in email or len(password) < 4:
+        return
+
+    user = get_user(email)
+    if not user:
+        create_user(email=email, pseudo=pseudo, password=password, role="admin")
+    else:
+        update_user_password(email, password)
+
+    backend = backend_name()
+    if backend == "mysql":
+        try:
+            from utils.mysql_store import ensure_schema, mysql_conn
+
+            ensure_schema()
+            with mysql_conn() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("UPDATE users SET role='admin', pseudo=%s WHERE email=%s", (pseudo, email))
+                conn.commit()
+        except Exception:
+            pass
+        return
+
+    try:
+        from utils.user_store import load_users, save_users
+
+        users = load_users()
+        if email in users:
+            users[email]["role"] = "admin"
+            users[email]["pseudo"] = pseudo
+            save_users(users)
+    except Exception:
+        pass
 
 
 def is_protected_account(email: str | None) -> bool:
@@ -89,6 +133,8 @@ def verify_session_token(token: str) -> str | None:
 
 
 def init_auth_state():
+    ensure_bootstrap_admin()
+
     if "is_authenticated" not in st.session_state:
         # Check for token in query params
         token = st.query_params.get("auth_token")
